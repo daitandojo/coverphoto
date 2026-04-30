@@ -1,65 +1,223 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSession, signIn } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
+
+import StudioHeader from "@/components/StudioHeader";
+import UploadZone from "@/components/UploadZone";
+import GenerateCTA from "@/components/GenerateCTA";
+import PortraitGallery from "@/components/PortraitGallery";
+import ShareCard from "@/components/ShareCard";
+import BuyCreditsModal from "@/components/BuyCreditsModal";
+import ConfettiBurst from "@/components/ConfettiBurst";
+import { usePortraitStore } from "@/lib/store";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const {
+    credits,
+    setCredits,
+    setShowBuyCredits,
+    showBuyCredits,
+    portraits,
+    isGenerating,
+    showShareCard,
+    isFirstRun,
+    completeFirstRun,
+    uploadedImages,
+    updatePortrait,
+    setSessionId,
+    setShowShareCard,
+  } = usePortraitStore();
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  // Fetch credits on auth
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/credits")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.credits !== undefined) setCredits(data.credits);
+        })
+        .catch(() => {});
+    }
+  }, [status, setCredits]);
+
+  // Override store's startGeneration to call the API
+  const handleGenerate = async () => {
+    if (uploadedImages.length < 2) {
+      toast("Please upload at least 2 reference images", {
+        className: "toast-custom",
+        icon: "◎",
+      });
+      return;
+    }
+
+    if (credits < 4) {
+      setShowBuyCredits(true);
+      return;
+    }
+
+    if (!session) {
+      signIn("google");
+      return;
+    }
+
+    setGenerating(true);
+
+    // Initialize portraits to generating state
+    usePortraitStore.getState().startGeneration();
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: uploadedImages.map((img) => img.preview),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        if (res.status === 402) {
+          setShowBuyCredits(true);
+          return;
+        }
+        throw new Error(err.error || "Generation failed");
+      }
+
+      const data = await res.json();
+
+      // Update each portrait as it arrives
+      data.portraits.forEach((p: any) => {
+        updatePortrait(p.id, {
+          url: p.url,
+          status: p.status,
+          error: p.error,
+        });
+      });
+
+      setCredits(data.creditsRemaining);
+      setSessionId(data.sessionId);
+
+      // Confetti for first run
+      if (isFirstRun) {
+        setShowConfetti(true);
+        completeFirstRun();
+        setTimeout(() => setShowConfetti(false), 3000);
+      }
+
+      // Show share card after all complete
+      setShowShareCard(true);
+    } catch (err: any) {
+      toast(err.message || "Generation failed. Please try again.", {
+        className: "toast-custom",
+        icon: "⚠",
+      });
+      // Reset portraits
+      usePortraitStore.getState().resetPortraits();
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "rgba(8,8,8,0.95)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(200,185,154,0.2)",
+            color: "#F0EDE8",
+            borderRadius: "8px",
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "13px",
+          },
+        }}
+      />
+
+      <StudioHeader
+        onCreditsClick={() => setShowBuyCredits(true)}
+        credits={credits}
+        user={session?.user ?? null}
+        isGenerating={generating}
+      />
+
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-10 lg:space-y-14">
+        {/* Hero section for unauthenticated users */}
+        {status === "unauthenticated" && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-6 py-12"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            <h2
+              className="text-4xl lg:text-5xl text-[#F0EDE8] leading-tight"
+              style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}
+            >
+              Your portrait studio,
+              <br />
+              reimagined for AI
+            </h2>
+            <p
+              className="text-sm text-[rgba(240,237,232,0.5)] max-w-md mx-auto"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Upload 2–4 reference images and receive four professionally composed
+              portraits. 100 free credits to begin.
+            </p>
+            <motion.button
+              onClick={() => signIn("google")}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-8 py-3 rounded-xl border border-[#C8B99A] text-sm text-[#C8B99A] bg-[rgba(200,185,154,0.05)] pulse-glow"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Sign in with Google to start
+            </motion.button>
+          </motion.section>
+        )}
+
+        {/* Main app */}
+        {status === "authenticated" && (
+          <>
+            <UploadZone />
+            <GenerateCTA onGenerate={handleGenerate} />
+            <PortraitGallery />
+            {showShareCard && <ShareCard />}
+          </>
+        )}
+
+        {/* Loading state */}
+        {status === "loading" && (
+          <div className="flex items-center justify-center py-20">
+            <div className="shimmer w-8 h-8 rounded-full" />
+          </div>
+        )}
       </main>
-    </div>
+
+      <BuyCreditsModal
+        open={showBuyCredits}
+        onClose={() => setShowBuyCredits(false)}
+      />
+
+      {showConfetti && <ConfettiBurst />}
+
+      {/* Footer */}
+      <footer className="py-6 text-center">
+        <p
+          className="text-xs text-[rgba(240,237,232,0.15)] tracking-widest uppercase"
+          style={{ fontFamily: "'DM Mono', monospace" }}
+        >
+          PortraitStudio
+        </p>
+      </footer>
+    </>
   );
 }

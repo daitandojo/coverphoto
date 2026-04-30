@@ -1,26 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #080808;
+  --color-surface: rgba(255, 255, 255, 0.03);
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-accent: #C8B99A;
+  --color-accent-dim: rgba(200, 185, 154, 0.4);
+  --color-text-primary: #F0EDE8;
+  --color-text-secondary: rgba(240, 237, 232, 0.6);
+  --color-text-muted: rgba(240, 237, 232, 0.35);
+
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'DM Mono', monospace;
+
+  --glow-accent: 0 0 20px rgba(200, 185, 154, 0.15);
+  --glow-accent-strong: 0 0 30px rgba(200, 185, 154, 0.25);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #080808;
+  --foreground: #F0EDE8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 185, 154, 0.2) transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Mono', monospace;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Glass card */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Platinum glow */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(200, 185, 154, 0.15);
+}
+
+.glow-accent-strong {
+  box-shadow: 0 0 30px rgba(200, 185, 154, 0.25);
+}
+
+/* Marching ants animation */
+@keyframes marching-ants {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -20; }
+}
+
+.ants-border {
+  stroke-dasharray: 10 5;
+  animation: marching-ants 0.8s linear infinite;
+}
+
+/* Shimmer animation for placeholders */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 25%,
+    rgba(200, 185, 154, 0.08) 50%,
+    rgba(255, 255, 255, 0.02) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+.shimmer-fast {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(200, 185, 154, 0.15) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+/* Breathing border glow */
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 15px rgba(200, 185, 154, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(200, 185, 154, 0.25); }
+}
+
+.breathe-border {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* Pulse glow for CTA */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(200, 185, 154, 0.1); }
+  50% { box-shadow: 0 0 35px rgba(200, 185, 154, 0.25); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Animated gradient border for header */
+@keyframes gradient-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-border-bottom {
+  position: relative;
+}
+
+.gradient-border-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200, 185, 154, 0.3), rgba(200, 185, 154, 0.6), rgba(200, 185, 154, 0.3), transparent);
+  background-size: 200% 100%;
+  animation: gradient-border 3s ease-in-out infinite;
+}
+
+/* Amber pulse for low credits */
+@keyframes amber-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); border-color: rgba(245, 158, 11, 0.6); }
+}
+
+.amber-pulse {
+  animation: amber-pulse 2s ease-in-out infinite;
+}
+
+/* Camera aperture SVG animation */
+@keyframes aperture-pulse {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+}
+
+.aperture-pulse {
+  animation: aperture-pulse 2s ease-in-out infinite;
+}
+
+/* Toast overrides */
+.toast-custom {
+  background: rgba(8, 8, 8, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(200, 185, 154, 0.2) !important;
+  color: #F0EDE8 !important;
+  border-radius: 8px !important;
+  font-family: 'DM Mono', monospace !important;
+  font-size: 13px !important;
 }

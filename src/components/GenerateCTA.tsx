@@ -1,0 +1,47 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { usePortraitStore } from "@/lib/store";
+
+interface GenerateCTAProps {
+  onGenerate: () => void;
+}
+
+export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
+  const { uploadedImages, credits, isGenerating } = usePortraitStore();
+
+  const canGenerate = uploadedImages.length >= 2 && credits >= 4 && !isGenerating;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
+      className="flex flex-col items-center gap-3"
+    >
+      <motion.button
+        onClick={onGenerate}
+        disabled={!canGenerate}
+        whileHover={canGenerate ? { y: -2 } : {}}
+        whileTap={canGenerate ? { scale: 0.98 } : {}}
+        className={`relative w-full max-w-md py-4 rounded-xl text-center transition-all duration-200 ${
+          canGenerate
+            ? "border border-[#C8B99A] pulse-glow cursor-pointer text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
+            : "border border-white/5 opacity-40 cursor-not-allowed text-[rgba(240,237,232,0.3)]"
+        }`}
+        style={{ fontFamily: "'DM Mono', monospace" }}
+      >
+        <span className="text-sm tracking-widest uppercase">
+          {isGenerating ? "Generating..." : "Generate 4 Portraits"}
+        </span>
+      </motion.button>
+
+      <p
+        className="text-xs text-[rgba(240,237,232,0.3)]"
+        style={{ fontFamily: "'DM Mono', monospace" }}
+      >
+        4 credits · {credits} remaining
+      </p>
+    </motion.section>
+  );
+}
