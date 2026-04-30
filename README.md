@@ -1,4 +1,4 @@
-# PortraitStudio
+# CoverPhoto
 
 A premium, dark-themed AI portrait generation web application. Upload reference images and receive four professionally composed portraits — powered by Replicate SDXL with IP-Adapter face conditioning for consistent likeness.
 
@@ -21,7 +21,7 @@ A premium, dark-themed AI portrait generation web application. Upload reference 
 
 ```bash
 git clone <your-repo>
-cd portrait-studio
+cd coverphoto
 npm install
 ```
 
@@ -68,7 +68,7 @@ Visit [http://localhost:4050](http://localhost:4050).
 4. Under "Credentials", create an OAuth 2.0 Client ID
 5. Set Authorized redirect URIs to:
    - `http://localhost:4050/api/auth/callback/google` (dev)
-   - `https://portraitstudio.vercel.app/api/auth/callback/google` (production)
+   - `https://coverphoto.vercel.app/api/auth/callback/google` (production)
 6. Copy the Client ID and Client Secret to `.env.local`
 
 ## Credits System
@@ -77,7 +77,7 @@ Visit [http://localhost:4050](http://localhost:4050).
 - Generating 4 portraits costs 4 credits
 - Redoing a single portrait costs 1 credit
 - Credits are deducted server-side (API route) to prevent manipulation
-- Free-tier downloads include a "Made with PortraitStudio" watermark
+- Free-tier downloads include a "Made with CoverPhoto" watermark
 
 ## API Routes
 
@@ -96,12 +96,12 @@ Visit [http://localhost:4050](http://localhost:4050).
 
 1. A [Vercel](https://vercel.com) account
 2. A Vercel API token from [vercel.com/account/tokens](https://vercel.com/account/tokens)
-3. The GitHub repo pushed: `github.com/daitandojo/portrait-studio`
+3. The GitHub repo pushed: `github.com/daitandojo/coverphoto`
 
 ### Option A: Vercel Web UI (recommended)
 
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import `daitandojo/portrait-studio`
+2. Import `daitandojo/coverphoto`
 3. Set all environment variables from `.env.local` in the Vercel dashboard
 4. Deploy
 
@@ -120,7 +120,7 @@ VERCEL_TOKEN=<your-token> bash scripts/deploy.sh
 
 ## Database
 
-All PortraitStudio tables use the `Portrait` prefix to avoid conflicts in shared databases:
+All CoverPhoto tables use the `Portrait` prefix to avoid conflicts in shared databases:
 
 | Table | Purpose |
 |-------|---------|
@@ -177,4 +177,4 @@ The `/api/generate` endpoint is rate-limited to **10 requests per 60 seconds** p
 
 ## Watermark
 
-Free-tier downloads include a "Made with PortraitStudio" watermark applied server-side using Sharp. The watermark is composited into the image data before it reaches the client — not removable via browser inspection.
+Free-tier downloads include a "Made with CoverPhoto" watermark applied server-side using Sharp. The watermark is composited into the image data before it reaches the client — not removable via browser inspection.

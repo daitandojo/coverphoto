@@ -18,7 +18,7 @@ export default function BuyCreditsModal({ open, onClose }: BuyCreditsModalProps)
     const storeId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_STORE_ID;
     if (!storeId) {
       // Fallback: direct Lemon Squeezy checkout link
-      const baseUrl = "https://portraitstudio.lemonsqueezy.com/checkout/buy";
+      const baseUrl = "https://coverphoto.lemonsqueezy.com/checkout/buy";
       const url = `${baseUrl}?store=${storeId}&embed=1&price=${pkg.priceId}`;
       window.open(url, "LS_CHECKOUT", "width=600,height=800");
       return;

@@ -29,7 +29,7 @@ print('Saved: $output')
 
 # Generate brand logo
 generate_image \
-  "A minimalist luxury brand logo for PortraitStudio. An elegant monogram PS in warm platinum serif lettering on a pure black background. Sophisticated editorial fashion-house energy. Clean lines, refined, premium. High-end photography studio watermark." \
+  "A minimalist luxury brand logo for CoverPhoto. An elegant monogram CP in warm platinum serif lettering on a pure black background. Sophisticated editorial fashion-house energy. Clean lines, refined, premium. High-end photography studio watermark." \
   "$PROJECT_DIR/public/logo.png"
 
 # Generate sample portraits for landing page

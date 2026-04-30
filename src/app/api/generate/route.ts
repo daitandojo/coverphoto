@@ -12,7 +12,7 @@ const replicate = new Replicate({
 const PORTRAIT_BRIEFS = [
   {
     style: "executive",
-    prompt: `You are Marcus Sterling, lead portrait photographer at PortraitStudio, whose client list includes Fortune 500 CEOs and world leaders. Your brief for this portrait:
+    prompt: `You are Marcus Sterling, lead portrait photographer at CoverPhoto, whose client list includes Fortune 500 CEOs and world leaders. Your brief for this portrait:
 
 COMPOSITION: Tight head-and-shoulders frame, subject looking directly into the lens with quiet authority. Rule of thirds positioning, shallow depth of field.
 
@@ -28,7 +28,7 @@ SUBJECT FIDELITY: The subject must be an exact likeness of the person in the ref
   },
   {
     style: "founder",
-    prompt: `You are Elena Vasquez, lead portrait photographer at PortraitStudio, known for capturing the new generation of innovators. Your brief for this portrait:
+    prompt: `You are Elena Vasquez, lead portrait photographer at CoverPhoto, known for capturing the new generation of innovators. Your brief for this portrait:
 
 COMPOSITION: Slight three-quarter turn, subject leaning slightly forward, hands loosely clasped. Environmental portrait feel.
 
@@ -44,7 +44,7 @@ SUBJECT FIDELITY: The subject must be an exact likeness of the person in the ref
   },
   {
     style: "statesperson",
-    prompt: `You are James Whitfield, lead portrait photographer at PortraitStudio, whose work hangs in galleries and government buildings. Your brief for this portrait:
+    prompt: `You are James Whitfield, lead portrait photographer at CoverPhoto, whose work hangs in galleries and government buildings. Your brief for this portrait:
 
 COMPOSITION: Formal standing pose, subject's body angled three-quarters, head turned to camera. Architectural frame with leading lines.
 
@@ -60,7 +60,7 @@ SUBJECT FIDELITY: The subject must be an exact likeness of the person in the ref
   },
   {
     style: "outdoors",
-    prompt: `You are River Chen, lead portrait photographer at PortraitStudio, celebrated for environmental portraiture. Your brief for this portrait:
+    prompt: `You are River Chen, lead portrait photographer at CoverPhoto, celebrated for environmental portraiture. Your brief for this portrait:
 
 COMPOSITION: Wide shoulders, head slightly tilted, looking into the distance beyond camera. Natural environmental framing.
 

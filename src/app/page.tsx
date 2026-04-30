@@ -215,7 +215,7 @@ export default function Home() {
           className="text-xs text-[rgba(240,237,232,0.15)] tracking-widest uppercase"
           style={{ fontFamily: "'DM Mono', monospace" }}
         >
-          PortraitStudio
+          CoverPhoto
         </p>
       </footer>
     </>

@@ -1,6 +1,6 @@
 import sharp from "sharp";
 
-const WATERMARK_TEXT = "Made with PortraitStudio";
+const WATERMARK_TEXT = "Made with CoverPhoto";
 
 export async function applyWatermark(
   imageBuffer: Buffer,

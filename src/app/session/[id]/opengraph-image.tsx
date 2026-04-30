@@ -12,7 +12,7 @@ interface OGProps {
 export default async function OGImage({ params }: OGProps) {
   const { id } = await params;
 
-  let subtitle = "Made with PortraitStudio";
+  let subtitle = "Made with CoverPhoto";
 
   try {
     const session = await prisma.portraitSessionRecord.findUnique({

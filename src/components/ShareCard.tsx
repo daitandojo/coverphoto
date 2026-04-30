@@ -59,11 +59,11 @@ export default function ShareCard() {
     ctx.fillStyle = "rgba(200, 185, 154, 0.3)";
     ctx.font = "14px 'DM Mono', monospace";
     ctx.textAlign = "center";
-    ctx.fillText("Made with PortraitStudio", 512, 970);
+    ctx.fillText("Made with CoverPhoto", 512, 970);
 
     // Download
     const link = document.createElement("a");
-    link.download = "portrait-studio-composite.jpg";
+    link.download = "coverphoto-composite.jpg";
     link.href = canvas.toDataURL("image/jpeg", 0.95);
     link.click();
   }, [completed.length, portraits]);

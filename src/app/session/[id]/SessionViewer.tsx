@@ -39,7 +39,7 @@ export default function SessionViewer({ id, portraits }: SessionViewerProps) {
             className="text-xs text-[rgba(240,237,232,0.3)] tracking-[0.2em] uppercase"
             style={{ fontFamily: "'DM Mono', monospace" }}
           >
-            Made with PortraitStudio
+            Made with CoverPhoto
           </p>
         </motion.div>
 
@@ -55,7 +55,7 @@ export default function SessionViewer({ id, portraits }: SessionViewerProps) {
             className="inline-block px-6 py-3 rounded-xl border border-white/10 text-sm text-[rgba(240,237,232,0.5)] hover:text-[#C8B99A] hover:border-[#C8B99A]/30 transition-all"
             style={{ fontFamily: "'DM Mono', monospace" }}
           >
-            Create your own at PortraitStudio
+            Create your own at CoverPhoto
           </a>
         </div>
       </div>

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy PortraitStudio to Vercel
+# Deploy CoverPhoto to Vercel
 # Usage: VERCEL_TOKEN=<token> bash scripts/deploy.sh
 # Get a token from https://vercel.com/account/tokens
 
@@ -13,7 +13,7 @@ if [ -z "${VERCEL_TOKEN:-}" ]; then
   exit 1
 fi
 
-PROJECT="portrait-studio"
+PROJECT="coverphoto"
 SCOPE="daitandojo"
 
 echo "🔍 Linking project..."

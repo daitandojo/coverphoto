@@ -3,7 +3,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "PortraitStudio — Premium AI Portraits",
+  title: "CoverPhoto — Premium AI Portraits",
   description:
     "World-class AI portrait generation. Upload your reference images and receive four professionally composed portraits in studio quality.",
 };

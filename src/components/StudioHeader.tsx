@@ -26,7 +26,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
             className="text-xl lg:text-2xl tracking-[0.3em] text-[#F0EDE8] select-none"
             style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}
           >
-            PORTRAIT STUDIO
+            COVERPHOTO
           </h1>
         </div>
 

@@ -10,7 +10,7 @@ export const ratelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "60 s"),
   analytics: true,
-  prefix: "portraitstudio",
+  prefix: "coverphoto",
 });
 
 export async function checkRateLimit(identifier: string) {
