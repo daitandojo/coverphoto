@@ -3,8 +3,6 @@
 import { create } from "zustand";
 import type { PortraitImage, PortraitStyle, UploadedImage } from "@/types";
 
-const STYLES: PortraitStyle[] = ["executive", "founder", "statesperson", "outdoors"];
-
 interface PortraitStore {
   credits: number;
   uploadedImages: UploadedImage[];
@@ -14,6 +12,13 @@ interface PortraitStore {
   showShareCard: boolean;
   isFirstRun: boolean;
   sessionId: string | null;
+
+  // New: tier & type selection
+  portraitCount: number;
+  selectedTypes: string[];
+  showTypePicker: boolean;
+  promptEditEnabled: boolean;
+  customPrompts: Record<string, string>;
 
   setCredits: (credits: number) => void;
   deductCredits: (amount: number) => void;
@@ -28,22 +33,33 @@ interface PortraitStore {
   resetPortraits: () => void;
   redoPortrait: (id: string) => void;
   completeFirstRun: () => void;
+
+  // New actions
+  setPortraitCount: (count: number) => void;
+  setSelectedTypes: (types: string[]) => void;
+  toggleType: (typeId: string) => void;
+  setShowTypePicker: (show: boolean) => void;
+  setPromptEditEnabled: (enabled: boolean) => void;
+  setCustomPrompts: (prompts: Record<string, string>) => void;
+  selectAll: () => void;
+  selectNone: () => void;
 }
 
 export const usePortraitStore = create<PortraitStore>((set, get) => ({
   credits: 0,
   uploadedImages: [],
-  portraits: STYLES.map((style, i) => ({
-    id: `portrait-${i}`,
-    url: "",
-    style,
-    status: "pending" as const,
-  })),
+  portraits: [],
   isGenerating: false,
   showBuyCredits: false,
   showShareCard: false,
   isFirstRun: true,
   sessionId: null,
+
+  portraitCount: 4,
+  selectedTypes: ["executive", "founder", "statesperson", "outdoors"],
+  showTypePicker: false,
+  promptEditEnabled: false,
+  customPrompts: {},
 
   setCredits: (credits) => set({ credits }),
 
@@ -66,15 +82,15 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   clearUploadedImages: () => set({ uploadedImages: [] }),
 
   startGeneration: () =>
-    set({
+    set((state) => ({
       isGenerating: true,
-      portraits: STYLES.map((style, i) => ({
+      portraits: state.selectedTypes.map((t, i) => ({
         id: `portrait-${i}`,
         url: "",
-        style,
         status: "generating" as const,
+        style: t as PortraitStyle,
       })),
-    }),
+    })),
 
   updatePortrait: (id, updates) =>
     set((state) => ({
@@ -90,15 +106,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setSessionId: (id) => set({ sessionId: id }),
 
   resetPortraits: () =>
-    set({
-      portraits: STYLES.map((style, i) => ({
-        id: `portrait-${i}`,
-        url: "",
-        style,
-        status: "pending" as const,
-      })),
-      isGenerating: false,
-    }),
+    set({ portraits: [], isGenerating: false }),
 
   redoPortrait: (id) =>
     set((state) => ({
@@ -109,4 +117,23 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     })),
 
   completeFirstRun: () => set({ isFirstRun: false }),
+
+  setPortraitCount: (count) => set({ portraitCount: count }),
+  setSelectedTypes: (types) => set({ selectedTypes: types }),
+  toggleType: (typeId) =>
+    set((state) => {
+      const isSelected = state.selectedTypes.includes(typeId);
+      if (isSelected) {
+        if (state.selectedTypes.length <= state.portraitCount && state.selectedTypes.length <= 1) return state;
+        return { selectedTypes: state.selectedTypes.filter((t) => t !== typeId) };
+      }
+      const max = state.portraitCount;
+      if (state.selectedTypes.length >= max) return state;
+      return { selectedTypes: [...state.selectedTypes, typeId] };
+    }),
+  setShowTypePicker: (show) => set({ showTypePicker: show }),
+  setPromptEditEnabled: (enabled) => set({ promptEditEnabled: enabled }),
+  setCustomPrompts: (prompts) => set({ customPrompts: prompts }),
+  selectAll: () => set((state) => ({ selectedTypes: state.selectedTypes.length >= 12 ? [] : ["executive","founder","statesperson","outdoors","passport","linkedin","artist","athlete","scholar","minimalist","romantic","maverick"] })),
+  selectNone: () => set({ selectedTypes: [] }),
 }));

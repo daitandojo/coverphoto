@@ -1,28 +1,103 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 import ContextMenu from "./ContextMenu";
 import type { PortraitImage } from "@/types";
-
-interface PortraitCardProps {
-  portrait: PortraitImage;
-  index: number;
-}
 
 const STYLE_LABELS: Record<string, string> = {
   executive: "Executive · Three-quarter · Formal",
   founder: "Founder · Smart-casual · Warm",
   statesperson: "Statesperson · Formal · Architectural",
   outdoors: "Outdoors · Casual · Natural light",
+  passport: "Passport · Regulation · Neutral",
+  linkedin: "LinkedIn · Professional · Friendly",
+  artist: "Artist · Creative · Bold",
+  athlete: "Athlete · Dynamic · Dramatic",
+  scholar: "Scholar · Intellectual · Warm",
+  minimalist: "Minimalist · Clean · Bauhaus",
+  romantic: "Romantic · Soft · Intimate",
+  maverick: "Maverick · Edgy · High contrast",
 };
 
-export default function PortraitCard({ portrait, index }: PortraitCardProps) {
-  const { updatePortrait, redoPortrait, credits } = usePortraitStore();
+const GRID = 7;
+
+function generateFragments() {
+  const items = [];
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 80 + Math.random() * 200;
+      items.push({
+        key: `${r}-${c}`,
+        left: `${(c / GRID) * 100}%`,
+        top: `${(r / GRID) * 100}%`,
+        w: `${100 / GRID}%`,
+        h: `${100 / GRID}%`,
+        bx: `${c * (100 / (GRID - 1))}%`,
+        by: `${r * (100 / (GRID - 1))}%`,
+        dx: Math.cos(angle) * dist,
+        dy: Math.sin(angle) * dist,
+        rot: (Math.random() - 0.5) * 400,
+        delay: Math.random() * 0.25,
+      });
+    }
+  }
+  return items;
+}
+
+function MaterializeImage({ src, onDone }: { src: string; onDone: () => void }) {
+  const fragments = useMemo(() => generateFragments(), []);
+
+  useEffect(() => {
+    const t = setTimeout(onDone, 1200);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <div className="absolute inset-0">
+      {fragments.map((f) => (
+        <motion.div
+          key={f.key}
+          initial={{ opacity: 0, x: f.dx, y: f.dy, rotate: f.rot, scale: 0.3 }}
+          animate={{ opacity: 1, x: 0, y: 0, rotate: 0, scale: 1 }}
+          transition={{ duration: 0.7, delay: f.delay, ease: "easeOut" }}
+          className="absolute"
+          style={{
+            left: f.left,
+            top: f.top,
+            width: f.w,
+            height: f.h,
+            backgroundImage: `url(${src})`,
+            backgroundSize: `${GRID * 100}%`,
+            backgroundPosition: `${f.bx} ${f.by}`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface PortraitCardProps {
+  portrait: PortraitImage;
+  index: number;
+  large?: boolean;
+}
+
+export default function PortraitCard({ portrait, index, large }: PortraitCardProps) {
+  const { redoPortrait, credits } = usePortraitStore();
   const [showOverlay, setShowOverlay] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [materializing, setMaterializing] = useState(true);
+
+  useEffect(() => {
+    if (portrait.status === "completed" && portrait.url) {
+      setMaterializing(true);
+    } else {
+      setMaterializing(false);
+    }
+  }, [portrait.status, portrait.url]);
 
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -37,11 +112,10 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `portrait-${portrait.style}.jpg`;
+      a.download = `coverphoto-${portrait.style}.jpg`;
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
-      // fallback: open in new tab
       window.open(portrait.url, "_blank");
     }
   }, [portrait.url, portrait.style]);
@@ -56,24 +130,24 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
     try {
       const res = await fetch(portrait.url);
       const blob = await res.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
-      ]);
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     } catch {
-      // fallback
-      const textarea = document.createElement("textarea");
-      textarea.value = portrait.url;
-      document.body.appendChild(textarea);
-      textarea.select();
+      const ta = document.createElement("textarea");
+      ta.value = portrait.url;
+      document.body.appendChild(ta);
+      ta.select();
       document.execCommand("copy");
-      document.body.removeChild(textarea);
+      document.body.removeChild(ta);
     }
     setContextMenu(null);
   };
 
+  const sizeClass = large
+    ? "w-full max-w-[400px] h-[500px]"
+    : "w-full aspect-[3/4] min-h-[200px]";
+
   return (
     <motion.div
-      ref={cardRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut", delay: index * 0.08 }}
@@ -81,27 +155,13 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
       onMouseEnter={() => setShowOverlay(true)}
       onMouseLeave={() => setShowOverlay(false)}
       onContextMenu={handleContextMenu}
-      className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[280px] sm:min-h-[320px] bg-[rgba(255,255,255,0.02)] border border-white/5 group"
+      className={`relative rounded-xl overflow-hidden bg-[rgba(255,255,255,0.02)] border border-white/5 group ${sizeClass}`}
     >
       {/* Pending / Generating state */}
       {(portrait.status === "pending" || portrait.status === "generating") && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div
-            className={`absolute inset-0 ${
-              portrait.status === "generating" ? "shimmer-fast" : "shimmer"
-            }`}
-          />
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="rgba(200,185,154,0.3)"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="aperture-pulse relative z-10"
-          >
+          <div className={`absolute inset-0 ${portrait.status === "generating" ? "shimmer-fast" : "shimmer"}`} />
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(200,185,154,0.3)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="aperture-pulse relative z-10">
             <circle cx="12" cy="12" r="10" />
             <line x1="14.31" y1="8" x2="20.05" y2="17.94" />
             <line x1="9.69" y1="8" x2="21.17" y2="8" />
@@ -111,10 +171,7 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
             <line x1="16.62" y1="12" x2="10.88" y2="21.94" />
           </svg>
           {portrait.status === "generating" && (
-            <span
-              className="relative z-10 mt-3 text-xs text-[rgba(200,185,154,0.6)]"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
+            <span className="relative z-10 mt-3 text-xs text-[rgba(200,185,154,0.6)]" style={{ fontFamily: "'DM Mono', monospace" }}>
               Composing portrait {index + 1}…
             </span>
           )}
@@ -140,15 +197,18 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
       {/* Completed image */}
       {portrait.status === "completed" && portrait.url && (
         <>
-          <img
-            src={portrait.url}
-            alt={`Portrait ${index + 1}`}
-            className="w-full h-full object-cover"
-          />
+          {materializing ? (
+            <MaterializeImage
+              src={portrait.url}
+              onDone={() => setMaterializing(false)}
+            />
+          ) : (
+            <img src={portrait.url} alt={`Portrait ${index + 1}`} className="w-full h-full object-cover" />
+          )}
 
           {/* Hover overlay */}
           <AnimatePresence>
-            {showOverlay && (
+            {showOverlay && !materializing && (
               <motion.div
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
@@ -156,11 +216,8 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
                 transition={{ duration: 0.3, ease: "easeOut" }}
                 className="absolute inset-x-0 bottom-0 p-4 pt-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
               >
-                <p
-                  className="text-xs text-[#C8B99A] mb-3"
-                  style={{ fontFamily: "'DM Mono', monospace" }}
-                >
-                  {STYLE_LABELS[portrait.style]}
+                <p className="text-xs text-[#C8B99A] mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  {STYLE_LABELS[portrait.style] || portrait.style}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -192,10 +249,7 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
             x={contextMenu.x}
             y={contextMenu.y}
             onSave={handleSave}
-            onRedo={() => {
-              redoPortrait(portrait.id);
-              setContextMenu(null);
-            }}
+            onRedo={() => { redoPortrait(portrait.id); setContextMenu(null); }}
             onCopy={handleCopy}
             onClose={() => setContextMenu(null)}
           />

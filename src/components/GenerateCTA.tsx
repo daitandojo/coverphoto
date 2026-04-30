@@ -8,9 +8,11 @@ interface GenerateCTAProps {
 }
 
 export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
-  const { uploadedImages, credits, isGenerating } = usePortraitStore();
+  const { uploadedImages, credits, isGenerating, portraitCount, selectedTypes, promptEditEnabled } =
+    usePortraitStore();
 
-  const canGenerate = uploadedImages.length >= 2 && credits >= 4 && !isGenerating;
+  const creditCost = portraitCount + (promptEditEnabled ? 2 : 0);
+  const canGenerate = uploadedImages.length >= 2 && credits >= creditCost && !isGenerating && selectedTypes.length > 0;
 
   return (
     <motion.section
@@ -31,16 +33,19 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
         }`}
         style={{ fontFamily: "'DM Mono', monospace" }}
       >
+        <span className="gold-corner top-left" />
+        <span className="gold-corner top-right" />
+        <span className="gold-corner bottom-left" />
+        <span className="gold-corner bottom-right" />
+
         <span className="text-sm tracking-widest uppercase">
-          {isGenerating ? "Generating..." : "Generate 4 Portraits"}
+          {isGenerating ? "Generating..." : `Generate ${portraitCount} Portrait${portraitCount > 1 ? "s" : ""}`}
         </span>
       </motion.button>
 
-      <p
-        className="text-xs text-[rgba(240,237,232,0.3)]"
-        style={{ fontFamily: "'DM Mono', monospace" }}
-      >
-        4 credits · {credits} remaining
+      <p className="text-xs text-[rgba(240,237,232,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>
+        {creditCost} credit{creditCost > 1 ? "s" : ""} · {credits} remaining
+        {promptEditEnabled && " · ✦ Custom prompts"}
       </p>
     </motion.section>
   );

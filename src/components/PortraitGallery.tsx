@@ -5,20 +5,32 @@ import { usePortraitStore } from "@/lib/store";
 import PortraitCard from "./PortraitCard";
 
 export default function PortraitGallery() {
-  const { portraits, isGenerating } = usePortraitStore();
-  const show = isGenerating || portraits.some((p) => p.status !== "pending");
+  const { portraits, portraitCount } = usePortraitStore();
+  const show = portraits.some((p) => p.status !== "pending");
 
   if (!show) return null;
+
+  // Grid layout based on portrait count
+  let gridClass = "grid grid-cols-2 lg:grid-cols-4 gap-4";
+  if (portraitCount === 1) {
+    gridClass = "flex justify-center";
+  } else if (portraitCount === 8) {
+    gridClass = "grid grid-cols-2 md:grid-cols-4 gap-4";
+  } else if (portraitCount === 12) {
+    gridClass = "grid grid-cols-3 md:grid-cols-4 gap-4";
+  }
 
   return (
     <motion.section
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut", delay: 0.3 }}
-      className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      className={gridClass}
     >
       {portraits.map((portrait, i) => (
-        <PortraitCard key={portrait.id} portrait={portrait} index={i} />
+        <div key={portrait.id} className={portraitCount === 1 ? "w-[400px]" : ""}>
+          <PortraitCard portrait={portrait} index={i} large={portraitCount === 1} />
+        </div>
       ))}
     </motion.section>
   );

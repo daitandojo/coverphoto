@@ -203,13 +203,7 @@ export default function SampleGallery() {
         ))}
       </div>
 
-      {/* Collection label */}
-      <p
-        className="text-[10px] tracking-[0.3em] text-[rgba(240,237,232,0.18)] uppercase"
-        style={{ fontFamily: "'DM Mono', monospace" }}
-      >
-        {set.label}
-      </p>
+
     </motion.div>
   );
 }

@@ -14,7 +14,9 @@ import BuyCreditsModal from "@/components/BuyCreditsModal";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
+import TypePicker from "@/components/TypePicker";
 import { usePortraitStore } from "@/lib/store";
+import { BRIEFS } from "@/lib/prompts";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -32,6 +34,14 @@ export default function Home() {
     updatePortrait,
     setSessionId,
     setShowShareCard,
+    portraitCount,
+    selectedTypes,
+    showTypePicker,
+    setShowTypePicker,
+    promptEditEnabled,
+    setPromptEditEnabled,
+    customPrompts,
+    setCustomPrompts,
   } = usePortraitStore();
   const [showConfetti, setShowConfetti] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -66,7 +76,8 @@ export default function Home() {
       });
       return;
     }
-    if (credits < 4) { setShowBuyCredits(true); return; }
+    const creditCost = portraitCount + (promptEditEnabled ? 2 : 0);
+    if (credits < creditCost) { setShowBuyCredits(true); return; }
     if (!session) { signIn("google"); return; }
 
     setGenerating(true);
@@ -78,6 +89,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           images: uploadedImages.map((img) => img.preview),
+          count: portraitCount,
+          selectedTypes,
+          customPrompts: promptEditEnabled ? customPrompts : undefined,
         }),
       });
 
@@ -156,7 +170,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 }}
-                  className="text-center space-y-2"
+                  className="text-center space-y-2 pt-1"
                 >
                   <p className="text-[9px] tracking-[0.35em] text-[#C8B99A] uppercase"
                     style={{ fontFamily: "'DM Mono', monospace" }}>
@@ -166,7 +180,7 @@ export default function Home() {
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#F0EDE8] leading-none tracking-tight"
                     style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}
                   >
-                    Four perspectives.
+                    Multiple perspectives.
                     <br />
                     <span className="text-[#C8B99A]">One you.</span>
                   </h2>
@@ -195,7 +209,7 @@ export default function Home() {
                     <span className="gold-corner top-right" />
                     <span className="gold-corner bottom-left" />
                     <span className="gold-corner bottom-right" />
-                    Begin Your Portrait
+                    Begin Your Series
                   </motion.button>
                   <p className="text-[10px] text-[rgba(240,237,232,0.15)] tracking-widest uppercase"
                     style={{ fontFamily: "'DM Mono', monospace" }}>
@@ -207,8 +221,68 @@ export default function Home() {
 
             {/* ===== APP: authenticated ===== */}
             {status === "authenticated" && (
-              <main className="flex-1 overflow-y-auto w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+              <main className="flex-1 overflow-y-auto w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
                 <UploadZone />
+
+                {/* Toggle type picker */}
+                <div className="flex items-center justify-center gap-4">
+                  <motion.button
+                    onClick={() => setShowTypePicker(!showTypePicker)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`px-5 py-2 rounded-lg border text-xs transition-all tracking-wider uppercase ${
+                      showTypePicker
+                        ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
+                        : "border-white/10 text-[rgba(240,237,232,0.4)] hover:text-white/70"
+                    }`}
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
+                    {showTypePicker ? "✓ Portrait types selected" : "Choose portrait types"}
+                  </motion.button>
+
+                  {/* Prompt editor toggle */}
+                  <motion.button
+                    onClick={() => setPromptEditEnabled(!promptEditEnabled)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`px-5 py-2 rounded-lg border text-xs transition-all tracking-wider uppercase ${
+                      promptEditEnabled
+                        ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
+                        : "border-white/10 text-[rgba(240,237,232,0.4)] hover:text-white/70"
+                    }`}
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
+                    {promptEditEnabled ? "✦ Prompts editable (+2cr)" : "Customize prompts ✦"}
+                  </motion.button>
+                </div>
+
+                <TypePicker />
+
+                {/* Prompt editor */}
+                {promptEditEnabled && showTypePicker && selectedTypes.map((typeId) => {
+                  const brief = BRIEFS.find((b) => b.id === typeId);
+                  if (!brief) return null;
+                  return (
+                    <motion.div
+                      key={typeId}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-1"
+                    >
+                      <p className="text-xs text-[#C8B99A]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                        {brief.name} — {brief.tagline}
+                      </p>
+                      <textarea
+                        value={customPrompts[typeId] || brief.prompt}
+                        onChange={(e) => setCustomPrompts({ ...customPrompts, [typeId]: e.target.value })}
+                        rows={4}
+                        className="w-full text-xs bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg p-3 text-[rgba(240,237,232,0.7)] focus:outline-none focus:border-[#C8B99A]/40 resize-y"
+                        style={{ fontFamily: "'DM Mono', monospace" }}
+                      />
+                    </motion.div>
+                  );
+                })}
+
                 <GenerateCTA onGenerate={handleGenerate} />
                 <PortraitGallery />
                 {showShareCard && <ShareCard />}

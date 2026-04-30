@@ -6,7 +6,10 @@ export interface PortraitImage {
   error?: string;
 }
 
-export type PortraitStyle = "executive" | "founder" | "statesperson" | "outdoors";
+export type PortraitStyle =
+  | "executive" | "founder" | "statesperson" | "outdoors"
+  | "passport" | "linkedin" | "artist" | "athlete"
+  | "scholar" | "minimalist" | "romantic" | "maverick";
 
 export interface PortraitSession {
   id: string;
