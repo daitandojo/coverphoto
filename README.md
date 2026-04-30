@@ -1,16 +1,17 @@
 # PortraitStudio
 
-A premium, dark-themed AI portrait generation web application. Upload reference images and receive four professionally composed portraits powered by OpenAI's gpt-image-2.
+A premium, dark-themed AI portrait generation web application. Upload reference images and receive four professionally composed portraits — powered by Replicate SDXL with IP-Adapter face conditioning for consistent likeness.
 
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router)
-- **Styling:** Tailwind CSS + custom design system
+- **Styling:** Tailwind CSS + custom design system ("Dark Atelier")
 - **Animations:** Framer Motion
-- **Image Generation:** OpenAI gpt-image-2
+- **Image Generation:** Replicate (SDXL + IP-Adapter)
 - **Auth:** NextAuth.js with Google OAuth
 - **State:** Zustand
-- **Database:** Prisma + SQLite (local) / PostgreSQL (production)
+- **Database:** Prisma + PostgreSQL (Neon)
+- **Rate Limiting:** Upstash Redis
 - **Payments:** Lemon Squeezy (checkout overlay)
 - **File handling:** react-dropzone + native getUserMedia
 
@@ -33,10 +34,16 @@ cp .env.example .env.local
 ```
 
 Required variables:
-- `AUTH_SECRET` — Generate with `openssl rand -base64 32`
-- `GOOGLE_CLIENT_ID` — From Google Cloud Console
-- `GOOGLE_CLIENT_SECRET` — From Google Cloud Console
-- `OPENAI_API_KEY` — Your OpenAI API key
+| Variable | Description |
+|----------|-------------|
+| `AUTH_SECRET` | Generate with `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` | From Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
+| `REPLICATE_API_TOKEN` | Replicate API token |
+| `DATABASE_URL` | PostgreSQL connection string (Neon) |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
+| `OPENAI_API_KEY` | OpenAI key (logo/brand assets only) |
 
 ### 3. Setup database
 
@@ -51,7 +58,7 @@ npx prisma db push
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000).
+Visit [http://localhost:4050](http://localhost:4050).
 
 ## Google OAuth Setup
 
@@ -60,8 +67,8 @@ Visit [http://localhost:3000](http://localhost:3000).
 3. Enable the Google+ API
 4. Under "Credentials", create an OAuth 2.0 Client ID
 5. Set Authorized redirect URIs to:
-   - `http://localhost:3000/api/auth/callback/google` (dev)
-   - `https://your-domain.vercel.app/api/auth/callback/google` (production)
+   - `http://localhost:4050/api/auth/callback/google` (dev)
+   - `https://portraitstudio.vercel.app/api/auth/callback/google` (production)
 6. Copy the Client ID and Client Secret to `.env.local`
 
 ## Credits System
@@ -70,41 +77,58 @@ Visit [http://localhost:3000](http://localhost:3000).
 - Generating 4 portraits costs 4 credits
 - Redoing a single portrait costs 1 credit
 - Credits are deducted server-side (API route) to prevent manipulation
+- Free-tier downloads include a "Made with PortraitStudio" watermark
 
 ## API Routes
 
 | Route | Method | Description |
 |-------|--------|-------------|
 | `/api/auth/[...nextauth]` | GET/POST | NextAuth handlers |
-| `/api/generate` | POST | Generate 4 portraits |
+| `/api/generate` | POST | Generate 4 portraits (rate limited: 10/min) |
 | `/api/credits` | GET | Fetch user credits |
 | `/api/upload` | POST | Upload reference image |
-| `/api/webhooks/lemonsqueezy` | POST | Lemon Squeezy webhook |
+| `/api/session/[id]` | GET | Fetch session portraits (public) |
+| `/api/webhooks/lemonsqueezy` | POST | Lemon Squeezy webhook (HMAC verified) |
 
 ## Deployment
 
-### Deploy to Vercel
+### Prerequisites
 
-The project is ready for Vercel deployment:
+1. A [Vercel](https://vercel.com) account
+2. A Vercel API token from [vercel.com/account/tokens](https://vercel.com/account/tokens)
+3. The GitHub repo pushed: `github.com/daitandojo/portrait-studio`
+
+### Option A: Vercel Web UI (recommended)
+
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import `daitandojo/portrait-studio`
+3. Set all environment variables from `.env.local` in the Vercel dashboard
+4. Deploy
+
+### Option B: Vercel CLI
 
 ```bash
-npm i -g vercel
-vercel
+VERCEL_TOKEN=<your-token> bash scripts/deploy.sh
 ```
 
-For production:
+### Post-deployment
 
-```bash
-vercel --prod
-```
+1. Add your Vercel production URL to Google Cloud Console authorized redirect URIs
+2. Set `LEMONSQUEEZY_WEBHOOK_SECRET` in Vercel env vars
+3. Set `LEMONSQUEEZY_STORE_ID` and `NEXT_PUBLIC_LEMONSQUEEZY_STORE_ID`
+4. Run database migrations: `npx prisma migrate deploy`
 
-### Production Database
+## Database
 
-Swap SQLite for PostgreSQL (via Vercel Postgres or Supabase):
+All PortraitStudio tables use the `Portrait` prefix to avoid conflicts in shared databases:
 
-1. Update `DATABASE_URL` in `.env.local`
-2. Update `prisma/schema.prisma` datasource to `postgresql`
-3. Run `npx prisma db push`
+| Table | Purpose |
+|-------|---------|
+| `PortraitUser` | User accounts with credit balance |
+| `PortraitAccount` | OAuth provider accounts |
+| `PortraitSession` | Auth sessions |
+| `PortraitVerificationToken` | Email verification |
+| `PortraitSessionRecord` | Generated portrait sessions |
 
 ## Project Structure
 
@@ -114,13 +138,17 @@ src/
 │   ├── api/
 │   │   ├── auth/[...nextauth]/route.ts
 │   │   ├── credits/route.ts
-│   │   ├── generate/route.ts
+│   │   ├── generate/route.ts          # Replicate SDXL + IP-Adapter + rate limited
+│   │   ├── session/[id]/route.ts      # Public session API
 │   │   ├── upload/route.ts
-│   │   └── webhooks/lemonsqueezy/route.ts
-│   ├── session/[id]/page.tsx
-│   ├── globals.css
+│   │   └── webhooks/lemonsqueezy/route.ts  # HMAC-SHA256 verified
+│   ├── session/[id]/
+│   │   ├── page.tsx                   # Public session page
+│   │   ├── SessionViewer.tsx
+│   │   └── opengraph-image.tsx        # Dynamic OG image for shares
+│   ├── globals.css                    # Design system
 │   ├── layout.tsx
-│   └── page.tsx
+│   └── page.tsx                       # Main app page
 ├── components/
 │   ├── BuyCreditsModal.tsx
 │   ├── ConfettiBurst.tsx
@@ -136,7 +164,17 @@ src/
 ├── lib/
 │   ├── auth.ts
 │   ├── prisma.ts
-│   └── store.ts
+│   ├── rate-limit.ts                  # Upstash rate limiter
+│   ├── store.ts                       # Zustand store
+│   └── watermark.ts                   # Server-side watermark compositing
 └── types/
     └── index.ts
 ```
+
+## Rate Limiting
+
+The `/api/generate` endpoint is rate-limited to **10 requests per 60 seconds** per user using Upstash Redis. This prevents API budget drain by bad actors.
+
+## Watermark
+
+Free-tier downloads include a "Made with PortraitStudio" watermark applied server-side using Sharp. The watermark is composited into the image data before it reaches the client — not removable via browser inspection.
