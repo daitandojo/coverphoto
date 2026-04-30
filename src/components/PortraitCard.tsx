@@ -81,7 +81,7 @@ export default function PortraitCard({ portrait, index }: PortraitCardProps) {
       onMouseEnter={() => setShowOverlay(true)}
       onMouseLeave={() => setShowOverlay(false)}
       onContextMenu={handleContextMenu}
-      className="relative rounded-xl overflow-hidden aspect-[3/4] bg-[rgba(255,255,255,0.02)] border border-white/5 group"
+      className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[280px] sm:min-h-[320px] bg-[rgba(255,255,255,0.02)] border border-white/5 group"
     >
       {/* Pending / Generating state */}
       {(portrait.status === "pending" || portrait.status === "generating") && (

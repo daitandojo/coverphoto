@@ -8,25 +8,29 @@ interface BuyCreditsModalProps {
 }
 
 const PACKAGES = [
-  { credits: 50, price: 9, label: "50 credits" },
-  { credits: 200, price: 29, label: "200 credits", popular: true },
-  { credits: 500, price: 59, label: "500 credits" },
+  { credits: 10, price: 10, label: "10 credits", priceId: "price_10" },
+  { credits: 50, price: 30, label: "50 credits", popular: true, priceId: "price_50" },
+  { credits: 100, price: 50, label: "100 credits", priceId: "price_100" },
 ];
 
 export default function BuyCreditsModal({ open, onClose }: BuyCreditsModalProps) {
   const handlePurchase = (pkg: (typeof PACKAGES)[0]) => {
-    if (typeof window !== "undefined" && (window as any).Lemonsqueezy) {
-      (window as any).Lemonsqueezy.Setup({
-        product: Number(process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRODUCT_ID),
-        price: pkg.price,
-        checkout: {
-          embed: true,
-          media: false,
-          button: false,
-        },
-        events: {
-          onClose: () => onClose(),
-        },
+    const storeId = process.env.NEXT_PUBLIC_LEMONSQUEEZY_STORE_ID;
+    if (!storeId) {
+      // Fallback: direct Lemon Squeezy checkout link
+      const baseUrl = "https://portraitstudio.lemonsqueezy.com/checkout/buy";
+      const url = `${baseUrl}?store=${storeId}&embed=1&price=${pkg.priceId}`;
+      window.open(url, "LS_CHECKOUT", "width=600,height=800");
+      return;
+    }
+
+    if (typeof window !== "undefined" && (window as any).createLemonSqueezy) {
+      (window as any).createLemonSqueezy();
+      (window as any).LemonSqueezy.Setup({
+        store: storeId,
+        price: pkg.priceId,
+        checkout: { embed: true, media: false },
+        events: { onClose: () => onClose() },
       });
     }
   };
@@ -78,7 +82,7 @@ export default function BuyCreditsModal({ open, onClose }: BuyCreditsModalProps)
                       : "border-white/10 hover:border-white/20"
                   }`}
                 >
-                  <div className="text-left">
+                  <div className="text-left flex items-center gap-3">
                     <span
                       className="text-sm text-[#F0EDE8]"
                       style={{ fontFamily: "'DM Mono', monospace" }}
@@ -86,7 +90,7 @@ export default function BuyCreditsModal({ open, onClose }: BuyCreditsModalProps)
                       {pkg.label}
                     </span>
                     {pkg.popular && (
-                      <span className="ml-2 text-[10px] text-[#C8B99A] uppercase tracking-wider">
+                      <span className="text-[10px] text-[#C8B99A] uppercase tracking-wider border border-[#C8B99A]/30 px-1.5 py-0.5 rounded">
                         Best value
                       </span>
                     )}

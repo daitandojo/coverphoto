@@ -6,10 +6,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "replicate.delivery" },
+      { protocol: "https", hostname: "replicate.com" },
+      { protocol: "https", hostname: "pbxt.replicate.delivery" },
       { protocol: "https", hostname: "oaidalleapiprodscus.blob.core.windows.net" },
     ],
   },
-  serverExternalPackages: ["@prisma/client"],
+  serverExternalPackages: ["@prisma/client", "sharp"],
 };
 
 export default nextConfig;

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { applyWatermark } from "@/lib/watermark";
+import Replicate from "replicate";
+
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
+});
 
 const PORTRAIT_BRIEFS = [
   {
@@ -76,6 +83,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Rate limit by user email
+    const rateCheck = await checkRateLimit(session.user.email);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded. Try again later.",
+          retryAfter: rateCheck.reset,
+        },
+        { status: 429 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
     });
@@ -96,46 +115,55 @@ export async function POST(request: Request) {
     });
 
     // Create session record
-    const portraitSession = await prisma.portraitSession.create({
+    const portraitSession = await prisma.portraitSessionRecord.create({
       data: {
         userId: user.id,
         images: JSON.stringify(images),
+        portraits: JSON.stringify([]),
       },
     });
 
-    // Generate all 4 portraits in parallel
+    // Generate all 4 portraits in parallel using Replicate SDXL + IP-Adapter
     const results = await Promise.allSettled(
-      PORTRAIT_BRIEFS.map(async (brief, index) => {
-        const response = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-image-2",
-            prompt: brief.prompt,
-            n: 1,
-            size: "1024x1024",
-            response_format: "b64_json",
-          }),
-        });
+      PORTRAIT_BRIEFS.map(async (brief) => {
+        // Use SDXL with IP-Adapter for face-consistent generation
+        const output = await replicate.run(
+          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          {
+            input: {
+              prompt: brief.prompt,
+              negative_prompt: "cartoon, anime, illustration, painting, distorted face, bad anatomy",
+              width: 1024,
+              height: 1024,
+              num_outputs: 1,
+              scheduler: "DPMSolverMultistep",
+              num_inference_steps: 30,
+              guidance_scale: 7,
+              // IP-Adapter face conditioning using reference images
+              ip_adapter_image: images[0],
+              ip_adapter_scale: 0.6,
+            },
+          }
+        );
 
-        if (!response.ok) {
-          const err = await response.text();
-          throw new Error(`OpenAI API error: ${err}`);
+        const imageUrl = Array.isArray(output) ? output[0] : output;
+        if (!imageUrl || typeof imageUrl !== "string") {
+          throw new Error("No image generated");
         }
 
-        const data = await response.json();
-        const b64 = data.data[0]?.b64_json;
-        if (!b64) throw new Error("No image generated");
+        // Download image for watermarking
+        const response = await fetch(imageUrl);
+        const buffer = Buffer.from(await response.arrayBuffer());
 
-        // Return the image data as a data URL
-        return {
-          style: brief.style,
-          url: `data:image/png;base64,${b64}`,
-          index,
-        };
+        // Apply watermark for free-tier users
+        const isPaid = false; // Check user's subscription status in production
+        const watermarked = await applyWatermark(buffer, isPaid);
+
+        // Convert to base64 for storage
+        const b64 = watermarked.toString("base64");
+        const dataUrl = `data:image/jpeg;base64,${b64}`;
+
+        return { style: brief.style, url: dataUrl };
       })
     );
 
@@ -153,8 +181,14 @@ export async function POST(request: Request) {
         style: PORTRAIT_BRIEFS[index].style,
         url: "",
         status: "error" as const,
-        error: "Generation failed",
+        error: "Generation failed. Please retry.",
       };
+    });
+
+    // Update session record with generated portraits
+    await prisma.portraitSessionRecord.update({
+      where: { id: portraitSession.id },
+      data: { portraits: JSON.stringify(generatedPortraits) },
     });
 
     return NextResponse.json({
