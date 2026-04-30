@@ -3,12 +3,36 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
-import { getBriefs, getBrief } from "@/lib/prompts";
+import { getBriefs } from "@/lib/prompts";
 import Replicate from "replicate";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
 });
+
+async function uploadImage(
+  base64: string,
+  email: string,
+  index: number
+): Promise<string> {
+  // Try Vercel Blob first
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { put } = await import("@vercel/blob");
+      const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
+      const { url } = await put(
+        `references/${email}/${Date.now()}-${index}.jpg`,
+        buffer,
+        { access: "public" }
+      );
+      return url;
+    } catch (e) {
+      console.warn("Vercel Blob upload failed, falling back to data URL:", e);
+    }
+  }
+  // Fallback: return the base64 data URL — Replicate may or may not support this
+  return base64;
+}
 
 export async function POST(request: Request) {
   try {
@@ -47,18 +71,19 @@ export async function POST(request: Request) {
     }
 
     // Determine which briefs to use
-    let briefs;
-    if (selectedTypes && Array.isArray(selectedTypes) && selectedTypes.length > 0) {
-      briefs = getBriefs(selectedTypes);
-      if (briefs.length === 0) {
-        briefs = getBriefs(["executive", "founder", "statesperson", "outdoors"]);
-      }
-    } else {
-      briefs = getBriefs(["executive", "founder", "statesperson", "outdoors"]);
+    const briefs = getBriefs(
+      selectedTypes?.length > 0 ? selectedTypes : ["executive", "founder", "statesperson", "outdoors"]
+    );
+    briefs.length = Math.min(briefs.length, count);
+    if (briefs.length === 0) {
+      return NextResponse.json({ error: "No valid portrait types selected" }, { status: 400 });
     }
 
-    // Cap at the requested count
-    briefs = briefs.slice(0, count);
+    // Upload reference images to accessible URLs
+    const userEmail = session.user!.email!;
+    const uploadedUrls = await Promise.all(
+      images.map((img: string, i: number) => uploadImage(img, userEmail, i))
+    );
 
     // Deduct credits server-side
     await prisma.user.update({
@@ -70,14 +95,14 @@ export async function POST(request: Request) {
     const portraitSession = await prisma.portraitSessionRecord.create({
       data: {
         userId: user.id,
-        images: JSON.stringify(images),
+        images: JSON.stringify(uploadedUrls),
         portraits: JSON.stringify([]),
       },
     });
 
-    // Generate portraits
+    // Generate portraits in parallel
     const results = await Promise.allSettled(
-      briefs.map(async (brief, index) => {
+      briefs.map(async (brief) => {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
 
         const output = await replicate.run(
@@ -85,14 +110,15 @@ export async function POST(request: Request) {
           {
             input: {
               prompt: effectivePrompt,
-              negative_prompt: "cartoon, anime, illustration, painting, distorted face, bad anatomy",
+              negative_prompt:
+                "cartoon, anime, illustration, painting, distorted face, bad anatomy",
               width: 1024,
               height: 1024,
               num_outputs: 1,
               scheduler: "DPMSolverMultistep",
               num_inference_steps: 30,
               guidance_scale: 7,
-              ip_adapter_image: images[0],
+              ip_adapter_image: uploadedUrls[0],
               ip_adapter_scale: 0.6,
             },
           }
@@ -105,12 +131,10 @@ export async function POST(request: Request) {
 
         const response = await fetch(imageUrl);
         const buffer = Buffer.from(await response.arrayBuffer());
-        const isPaid = false; // Check subscription in production
+        const isPaid = false;
         const watermarked = await applyWatermark(buffer, isPaid);
         const b64 = watermarked.toString("base64");
-        const dataUrl = `data:image/jpeg;base64,${b64}`;
-
-        return { style: brief.id, url: dataUrl };
+        return { style: brief.id, url: `data:image/jpeg;base64,${b64}` };
       })
     );
 
@@ -128,7 +152,7 @@ export async function POST(request: Request) {
         style: briefs[index]?.id || "unknown",
         url: "",
         status: "error" as const,
-        error: "Generation failed. Please retry.",
+        error: result.reason?.message || "Generation failed. Please retry.",
       };
     });
 
@@ -145,6 +169,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Generation error:", error);
-    return NextResponse.json({ error: "Generation failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Generation failed" },
+      { status: 500 }
+    );
   }
 }

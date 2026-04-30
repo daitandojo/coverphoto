@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
@@ -11,12 +11,20 @@ import GenerateCTA from "@/components/GenerateCTA";
 import PortraitGallery from "@/components/PortraitGallery";
 import ShareCard from "@/components/ShareCard";
 import BuyCreditsModal from "@/components/BuyCreditsModal";
+import PortraitConfigModal from "@/components/PortraitConfigModal";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
-import TypePicker from "@/components/TypePicker";
 import { usePortraitStore } from "@/lib/store";
-import { BRIEFS } from "@/lib/prompts";
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.readAsDataURL(file);
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+  });
+}
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -25,7 +33,6 @@ export default function Home() {
     setCredits,
     setShowBuyCredits,
     showBuyCredits,
-    portraits,
     isGenerating,
     showShareCard,
     isFirstRun,
@@ -39,9 +46,7 @@ export default function Home() {
     showTypePicker,
     setShowTypePicker,
     promptEditEnabled,
-    setPromptEditEnabled,
     customPrompts,
-    setCustomPrompts,
   } = usePortraitStore();
   const [showConfetti, setShowConfetti] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -56,9 +61,7 @@ export default function Home() {
     if (status === "authenticated") {
       fetch("/api/credits")
         .then((r) => r.json())
-        .then((data) => {
-          if (data.credits !== undefined) setCredits(data.credits);
-        })
+        .then((d) => { if (d.credits !== undefined) setCredits(d.credits); })
         .catch(() => {});
     }
   }, [status, setCredits]);
@@ -68,12 +71,9 @@ export default function Home() {
     setSplashDone(true);
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (uploadedImages.length < 2) {
-      toast("Please upload at least 2 reference images", {
-        className: "toast-custom",
-        icon: "◎",
-      });
+      toast("Please upload at least 2 reference images", { className: "toast-custom", icon: "◎" });
       return;
     }
     const creditCost = portraitCount + (promptEditEnabled ? 2 : 0);
@@ -84,11 +84,14 @@ export default function Home() {
     usePortraitStore.getState().startGeneration();
 
     try {
+      // Convert files to base64 so the server can read them
+      const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
+
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          images: uploadedImages.map((img) => img.preview),
+          images: imagesBase64,
           count: portraitCount,
           selectedTypes,
           customPrompts: promptEditEnabled ? customPrompts : undefined,
@@ -96,9 +99,9 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
         if (res.status === 402) { setShowBuyCredits(true); return; }
-        throw new Error(err.error || "Generation failed");
+        throw new Error(err.error || `Generation failed (${res.status})`);
       }
 
       const data = await res.json();
@@ -114,23 +117,30 @@ export default function Home() {
         setTimeout(() => setShowConfetti(false), 3000);
       }
       setShowShareCard(true);
+
+      // Show errors per portrait
+      const errors = data.portraits.filter((p: any) => p.status === "error");
+      if (errors.length > 0) {
+        toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed — tap to retry`, {
+          className: "toast-custom",
+          icon: "⚠",
+          duration: 5000,
+        });
+      }
     } catch (err: any) {
-      toast(err.message || "Generation failed.", {
-        className: "toast-custom",
-        icon: "⚠",
-      });
+      toast(err.message || "Generation failed.", { className: "toast-custom", icon: "⚠" });
       usePortraitStore.getState().resetPortraits();
     } finally {
       setGenerating(false);
     }
-  };
+  }, [uploadedImages, portraitCount, selectedTypes, promptEditEnabled, customPrompts, credits, session, isFirstRun, updatePortrait, setCredits, setSessionId, setShowBuyCredits, setShowShareCard, completeFirstRun]);
 
   return (
     <>
       <Toaster
         position="top-center"
         toastOptions={{
-          duration: 3000,
+          duration: 4000,
           style: {
             background: "rgba(8,8,8,0.95)",
             backdropFilter: "blur(12px)",
@@ -165,7 +175,6 @@ export default function Home() {
             {/* ===== LANDING PAGE ===== */}
             {status === "unauthenticated" && (
               <main className="flex-1 flex flex-col items-center justify-center gap-6 md:gap-8 px-4 sm:px-6 lg:px-8 min-h-0">
-                {/* Hero — compact */}
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -186,12 +195,10 @@ export default function Home() {
                   </h2>
                 </motion.div>
 
-                {/* Gallery — centre stage */}
                 <div className="flex-shrink w-full max-w-6xl">
                   <SampleGallery />
                 </div>
 
-                {/* CTA */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -209,7 +216,7 @@ export default function Home() {
                     <span className="gold-corner top-right" />
                     <span className="gold-corner bottom-left" />
                     <span className="gold-corner bottom-right" />
-                    Begin Your Series
+                    Craft Your Own Series
                   </motion.button>
                   <p className="text-[10px] text-[rgba(240,237,232,0.15)] tracking-widest uppercase"
                     style={{ fontFamily: "'DM Mono', monospace" }}>
@@ -219,74 +226,33 @@ export default function Home() {
               </main>
             )}
 
-            {/* ===== APP: authenticated ===== */}
+            {/* ===== APP: authenticated – viewport-fit ===== */}
             {status === "authenticated" && (
-              <main className="flex-1 overflow-y-auto w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-                <UploadZone />
+              <main className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full min-h-0">
+                {/* Scrollable content area */}
+                <div className="flex-1 overflow-y-auto py-4 space-y-4 min-h-0">
+                  <UploadZone />
 
-                {/* Toggle type picker */}
-                <div className="flex items-center justify-center gap-4">
-                  <motion.button
-                    onClick={() => setShowTypePicker(!showTypePicker)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`px-5 py-2 rounded-lg border text-xs transition-all tracking-wider uppercase ${
-                      showTypePicker
-                        ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
-                        : "border-white/10 text-[rgba(240,237,232,0.4)] hover:text-white/70"
-                    }`}
-                    style={{ fontFamily: "'DM Mono', monospace" }}
-                  >
-                    {showTypePicker ? "✓ Portrait types selected" : "Choose portrait types"}
-                  </motion.button>
+                  {/* Configure + generate row */}
+                  <div className="flex items-center justify-center gap-3">
+                    <motion.button
+                      onClick={() => setShowTypePicker(true)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="px-4 py-2 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.5)] hover:text-white/70 transition-all tracking-wider uppercase"
+                      style={{ fontFamily: "'DM Mono', monospace" }}
+                    >
+                      ✦ Configure ({selectedTypes.length}/{portraitCount} types)
+                    </motion.button>
 
-                  {/* Prompt editor toggle */}
-                  <motion.button
-                    onClick={() => setPromptEditEnabled(!promptEditEnabled)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`px-5 py-2 rounded-lg border text-xs transition-all tracking-wider uppercase ${
-                      promptEditEnabled
-                        ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
-                        : "border-white/10 text-[rgba(240,237,232,0.4)] hover:text-white/70"
-                    }`}
-                    style={{ fontFamily: "'DM Mono', monospace" }}
-                  >
-                    {promptEditEnabled ? "✦ Prompts editable (+2cr)" : "Customize prompts ✦"}
-                  </motion.button>
+                    <GenerateCTA onGenerate={handleGenerate} />
+                  </div>
+
+                  <PortraitGallery />
+                  {showShareCard && <ShareCard />}
                 </div>
 
-                <TypePicker />
-
-                {/* Prompt editor */}
-                {promptEditEnabled && showTypePicker && selectedTypes.map((typeId) => {
-                  const brief = BRIEFS.find((b) => b.id === typeId);
-                  if (!brief) return null;
-                  return (
-                    <motion.div
-                      key={typeId}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-1"
-                    >
-                      <p className="text-xs text-[#C8B99A]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                        {brief.name} — {brief.tagline}
-                      </p>
-                      <textarea
-                        value={customPrompts[typeId] || brief.prompt}
-                        onChange={(e) => setCustomPrompts({ ...customPrompts, [typeId]: e.target.value })}
-                        rows={4}
-                        className="w-full text-xs bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg p-3 text-[rgba(240,237,232,0.7)] focus:outline-none focus:border-[#C8B99A]/40 resize-y"
-                        style={{ fontFamily: "'DM Mono', monospace" }}
-                      />
-                    </motion.div>
-                  );
-                })}
-
-                <GenerateCTA onGenerate={handleGenerate} />
-                <PortraitGallery />
-                {showShareCard && <ShareCard />}
-                <footer className="py-6 text-center">
+                <footer className="py-3 text-center flex-shrink-0">
                   <p className="text-xs text-[rgba(240,237,232,0.12)] tracking-widest uppercase"
                     style={{ fontFamily: "'DM Mono', monospace" }}>
                     CoverPhoto
@@ -302,10 +268,8 @@ export default function Home() {
               </main>
             )}
 
-            <BuyCreditsModal
-              open={showBuyCredits}
-              onClose={() => setShowBuyCredits(false)}
-            />
+            <BuyCreditsModal open={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
+            <PortraitConfigModal open={showTypePicker} onClose={() => setShowTypePicker(false)} />
             {showConfetti && <ConfettiBurst />}
           </motion.div>
         )}
