@@ -14,22 +14,26 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
   const creditCost = total + (promptEditEnabled ? 2 : 0);
   const hasRefs = uploadedImages.length >= 2;
   const hasTypes = total >= 1;
+  const missingRefs = 2 - uploadedImages.length;
 
   let disabled = false;
   let reason = "";
-  if (!hasRefs) { disabled = true; reason = `${2 - uploadedImages.length} more image${2 - uploadedImages.length !== 1 ? "s" : ""} needed`; }
-  else if (!hasTypes) { disabled = true; reason = "Select portrait types"; }
+  if (!hasRefs) { disabled = true; reason = `${missingRefs} more reference image${missingRefs !== 1 ? "s" : ""} needed`; }
+  else if (!hasTypes) { disabled = true; reason = "Select portrait types from the panel"; }
   else if (credits < creditCost) { disabled = true; reason = "Insufficient credits"; }
 
   const hasRunning = isGenerating || usePortraitStore.getState().portraits.some((p) => p.status !== "pending");
   const idle = !hasRunning && !isGenerating;
+
+  // Which phrase hosts the golden glow — animated via motion + layout
+  const glowIdx = !hasRefs ? 0 : !hasTypes ? 1 : -1;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="flex flex-col items-center gap-5 w-full"
+      className="flex flex-col items-center gap-6 w-full"
     >
       {/* Center text */}
       {idle && (
@@ -37,18 +41,30 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-center space-y-2"
+          className="text-center space-y-3"
         >
           <p className="text-[10px] tracking-[0.35em] text-[rgba(200,185,154,0.3)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>✦ Your Series Awaits ✦</p>
 
-          <p
-            className="text-xl md:text-2xl leading-snug max-w-md text-[rgba(240,237,232,0.55)]"
-            style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400 }}
-          >
-            <span className={`text-[#C8B99A] ${!hasRefs ? "golden-glow" : ""}`}>Upload or shoot your reference images</span>
-            <span className="text-[rgba(240,237,232,0.25)]">, </span>
-            <span className={`text-[#C8B99A] ${hasRefs && !hasTypes ? "golden-glow" : ""}`}>select portrait styles from the panel</span>
-            <span className="text-[rgba(240,237,232,0.25)]">, and bring your vision to life.</span>
+          <p className="text-2xl md:text-3xl leading-snug max-w-lg relative" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400 }}>
+            {/* Phrase 1 */}
+            <motion.span
+              layout
+              transition={{ duration: 0.7, ease: "easeInOut" }}
+              className={`relative inline ${glowIdx === 0 ? "golden-glow text-[#C8B99A]" : glowIdx === -1 ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.35)]"}`}
+            >
+              Upload or shoot your reference images
+            </motion.span>
+            <span className="text-[rgba(240,237,232,0.2)]">, </span>
+
+            {/* Phrase 2 */}
+            <motion.span
+              layout
+              transition={{ duration: 0.7, ease: "easeInOut" }}
+              className={`relative inline ${glowIdx === 1 ? "golden-glow text-[#C8B99A]" : "text-[rgba(240,237,232,0.35)]"}`}
+            >
+              select portrait styles from the panel
+            </motion.span>
+            <span className="text-[rgba(240,237,232,0.2)]">, and bring your vision to life.</span>
           </p>
         </motion.div>
       )}
@@ -57,7 +73,7 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
       <motion.button
         onClick={onGenerate}
         disabled={disabled || isGenerating}
-        whileHover={!disabled && !isGenerating ? { y: -2 } : {}}
+        whileHover={!disabled && !isGenerating && hasRefs && hasTypes ? { y: -2 } : {}}
         whileTap={!disabled && !isGenerating && hasRefs && hasTypes ? { scale: 0.98 } : {}}
         className={`relative w-full py-5 rounded-xl text-center transition-all duration-200 ${
           disabled || isGenerating

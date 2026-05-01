@@ -10,13 +10,13 @@ export default function BuilderPanel() {
 
   return (
     <div className="space-y-3 flex flex-col h-full">
-      <div className="flex items-center justify-between flex-shrink-0">
-        <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Builder</span>
-        <span className="text-sm text-[#C8B99A] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""}</span>
+      <div className="flex-shrink-0">
+        <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Portrait Builder</span>
+        <p className="text-xs text-[#C8B99A] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""} chosen</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="grid grid-cols-1 gap-1.5">
+        <div className="grid grid-cols-1 gap-1">
           {BRIEFS.map((brief, i) => {
             const count = typeCounters[brief.id] || 0;
             const active = count > 0;
@@ -26,7 +26,7 @@ export default function BuilderPanel() {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.015 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.015 }}
                 className={`relative rounded-lg border transition-all cursor-pointer ${
                   active
                     ? "border-[#C8B99A] bg-[rgba(200,185,154,0.06)]"
@@ -35,23 +35,27 @@ export default function BuilderPanel() {
                 onClick={() => (active ? decrementType(brief.id) : incrementType(brief.id))}
               >
                 {active && <><span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" /></>}
-                <div className="flex items-center justify-between p-3">
+                <div className="flex items-center justify-between p-2">
                   <div className="flex-1 min-w-0 mr-2">
                     <p className="text-sm text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.name}</p>
                     <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.tagline}</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <motion.button
                       onClick={(e) => { e.stopPropagation(); decrementType(brief.id); }}
                       whileTap={{ scale: 0.85 }}
-                      className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all"
+                      className={`w-7 h-7 rounded-md border text-xs transition-all ${
+                        active
+                          ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A]"
+                          : "border-white/5 text-[rgba(240,237,232,0.15)] cursor-default"
+                      }`}
                       style={{ fontFamily: "'DM Mono', monospace" }}
                     >−</motion.button>
-                    <span className="w-6 text-center text-base font-medium tabular-nums text-[#F0EDE8]" style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
+                    <span className={`w-5 text-center text-sm tabular-nums ${active ? "text-[#F0EDE8]" : "text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
                     <motion.button
                       onClick={(e) => { e.stopPropagation(); incrementType(brief.id); }}
                       whileTap={{ scale: 0.85 }}
-                      className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all"
+                      className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all"
                       style={{ fontFamily: "'DM Mono', monospace" }}
                     >+</motion.button>
                   </div>
