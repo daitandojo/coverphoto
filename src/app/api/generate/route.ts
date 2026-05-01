@@ -87,17 +87,19 @@ export async function POST(request: Request) {
             imageUrl = first;
           } else if (first && typeof first === "object") {
             const obj = first as Record<string, unknown>;
-            imageUrl = (obj.url || obj.image_url || obj.image || obj.output || "") as string;
+            imageUrl = String(obj.url || obj.image_url || obj.output || "");
           }
         } else if (typeof output === "string") {
           imageUrl = output;
         } else if (output && typeof output === "object") {
           const obj = output as Record<string, unknown>;
-          imageUrl = (obj.url || obj.image_url || obj.output || "") as string;
+          imageUrl = String(obj.url || obj.image_url || obj.output || "");
         }
 
         if (!imageUrl || !imageUrl.startsWith("http")) {
-          throw new Error(`No URL in output: ${JSON.stringify(output).slice(0, 200)}`);
+          const raw = JSON.stringify(output);
+          apiLog(`[${reqId}] Output debug`, { isArr: Array.isArray(output), type: typeof output, firstKeys: output && typeof output === "object" ? Object.keys(output) : [], raw: raw.slice(0, 300) });
+          throw new Error(`No URL in output (type=${typeof output})`);
         }
 
         const resp = await fetch(imageUrl);
