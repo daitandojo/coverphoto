@@ -8,7 +8,7 @@ import { SPECIALTIES } from "@/lib/specialties";
 import PortraitCard from "./PortraitCard";
 
 interface PortraitGalleryProps {
-  onRetry?: (style: string) => void;
+  onRetry?: (id: string, style: string) => void;
   onGeneratePending?: (style: string) => void;
 }
 

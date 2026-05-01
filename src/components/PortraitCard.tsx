@@ -83,7 +83,7 @@ interface PortraitCardProps {
   portrait: PortraitImage;
   index: number;
   large?: boolean;
-  onRetry?: (style: string) => void;
+  onRetry?: (id: string, style: string) => void;
 }
 
 export default function PortraitCard({ portrait, index, large, onRetry }: PortraitCardProps) {
@@ -94,11 +94,11 @@ export default function PortraitCard({ portrait, index, large, onRetry }: Portra
 
   const handleRetry = useCallback(() => {
     if (onRetry) {
-      onRetry(portrait.style);
+      onRetry(portrait.id, portrait.style);
     } else {
       redoPortrait(portrait.id);
     }
-  }, [onRetry, portrait.style, portrait.id, redoPortrait]);
+  }, [onRetry, portrait.id, portrait.style, redoPortrait]);
 
   useEffect(() => {
     if (portrait.status === "completed" && portrait.url) {

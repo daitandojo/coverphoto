@@ -133,7 +133,7 @@ export default function Home() {
     if (credits < 1) { setShowBuyCredits(true); return; }
     if (!session) { signIn("google"); return; }
     setGenerating(true);
-    usePortraitStore.getState().startGeneration();
+    // Don't call startGeneration — just keep existing portraits
     try {
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
       const res = await fetch("/api/generate", {
@@ -142,7 +142,12 @@ export default function Home() {
       });
       if (!res.ok) throw new Error("Generation failed");
       const data = await res.json();
-      data.portraits?.forEach((p: any) => updatePortrait(p.id, { url: p.url, status: p.status, error: p.error }));
+      // Map response to first pending portrait with this style
+      const state = usePortraitStore.getState();
+      const target = state.portraits.find((p) => p.style === style && p.status === "pending");
+      if (target && data.portraits?.[0]) {
+        updatePortrait(target.id, { url: data.portraits[0].url, status: data.portraits[0].status, error: data.portraits[0].error });
+      }
       if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
     } catch {
       toast("Generation failed.", { className: "toast-custom", icon: "⚠" });
@@ -157,12 +162,16 @@ export default function Home() {
     }
   });
 
-  // Retry a single portrait — same as handleGeneratePending but with credit check
-  const handleRetryOne = useCallback(async (style: string) => {
+  // Retry a single portrait — find by id, regenerate via API, update in place
+  const handleRetryOne = useCallback(async (id: string, style: string) => {
     if (uploadedImages.length < 2) { toast("Upload at least 2 reference images", { className: "toast-custom", icon: "◎" }); return; }
     if (credits < 1) { setShowBuyCredits(true); return; }
     if (!session) { signIn("google"); return; }
+
+    // Mark this specific portrait as generating (don't wipe others)
+    usePortraitStore.getState().redoPortrait(id);
     setGenerating(true);
+
     try {
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
       const res = await fetch("/api/generate", {
@@ -171,13 +180,18 @@ export default function Home() {
       });
       if (!res.ok) throw new Error("Retry failed");
       const data = await res.json();
-      data.portraits?.forEach((p: any) => updatePortrait(p.id, { url: p.url, status: p.status, error: p.error }));
+      // Update exactly this portrait with the result
+      if (data.portraits?.[0]) {
+        updatePortrait(id, { url: data.portraits[0].url, status: data.portraits[0].status, error: data.portraits[0].error });
+      }
       if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
       if (data.portraits?.some((p: any) => p.status === "completed") && "Notification" in window && Notification.permission === "granted") {
         new Notification("CoverPhoto", { body: "Portrait regenerated!", icon: "/logo.png" });
       }
-    } catch { toast("Retry failed.", { className: "toast-custom", icon: "⚠" }); }
-    finally { setGenerating(false); }
+    } catch {
+      toast("Retry failed.", { className: "toast-custom", icon: "⚠" });
+      usePortraitStore.getState().resetPortraits();
+    } finally { setGenerating(false); }
   }, [uploadedImages, credits, session, updatePortrait, setCredits, setShowBuyCredits]);
 
   return (

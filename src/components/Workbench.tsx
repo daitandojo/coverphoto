@@ -17,7 +17,7 @@ const RIGHT_PANEL_W = 500;
 const EDGE_HOVER_MARGIN = 59;
 const AUTO_CLOSE_MS = 8000;
 
-export default function Workbench({ onGenerate, onGeneratePending, onRetry }: { onGenerate: () => void; onGeneratePending?: (style: string) => void; onRetry?: (style: string) => void }) {
+export default function Workbench({ onGenerate, onGeneratePending, onRetry }: { onGenerate: () => void; onGeneratePending?: (style: string) => void; onRetry?: (id: string, style: string) => void }) {
   const { leftPanelOpen, rightPanelOpen, leftPanelPinned, rightPanelPinned, setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel, showShareCard, resetPortraits } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
