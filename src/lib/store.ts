@@ -82,10 +82,10 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   sessionId: null,
   showBuyCredits: false,
 
-  leftPanelOpen: false,
-  rightPanelOpen: false,
-  leftPanelPinned: false,
-  rightPanelPinned: false,
+  leftPanelOpen: true,
+  rightPanelOpen: true,
+  leftPanelPinned: true,
+  rightPanelPinned: true,
 
   typeCounters: makeCounters(),
   promptEditEnabled: false,
@@ -96,7 +96,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
 
   addUploadedImage: (img) =>
     set((s) => ({
-      uploadedImages: s.uploadedImages.length < 4 ? [...s.uploadedImages, img] : s.uploadedImages,
+      uploadedImages: s.uploadedImages.length < 3 ? [...s.uploadedImages, img] : s.uploadedImages,
     })),
   removeUploadedImage: (id) =>
     set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })),
