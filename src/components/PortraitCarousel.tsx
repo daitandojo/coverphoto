@@ -13,9 +13,11 @@ interface CarouselProps {
   label: string;
   emptyLabel: string;
   renderActions: (item: any) => React.ReactNode;
+  hasOrder: boolean;
+  onOrder?: (item: any) => void;
 }
 
-function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions }: CarouselProps) {
+function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrder, onOrder }: CarouselProps) {
   if (items.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center border border-dashed border-white/5 rounded-xl min-h-[360px]">
@@ -38,10 +40,8 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions }: Caro
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Label with more top margin */}
       <p className="text-[9px] tracking-[0.3em] text-[rgba(200,185,154,0.2)] uppercase mb-2 pt-1 text-center" style={{ fontFamily: "'DM Mono', monospace" }}>{label} <span className="text-[rgba(240,237,232,0.15)]">({items.length})</span></p>
 
-      {/* Main card — larger with side arrows */}
       <div className="relative flex-1 flex items-center min-h-0">
         <div className="relative w-full h-full max-h-full flex items-center">
           <AnimatePresence mode="wait">
@@ -56,31 +56,28 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions }: Caro
                   <img src={item.url} alt="" className="w-full h-full object-cover" />
                 )}
 
-                {/* Left arrow overlay */}
                 {showArrows && (
                   <button onClick={(e) => { e.stopPropagation(); setIdx((idx - 1 + items.length) % items.length); }}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all z-10"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>‹</button>
+                    className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all z-10">‹</button>
                 )}
-
-                {/* Right arrow overlay */}
                 {showArrows && (
                   <button onClick={(e) => { e.stopPropagation(); setIdx((idx + 1) % items.length); }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all z-10"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>›</button>
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all z-10">›</button>
                 )}
-
-                {/* Counter badge */}
                 {showArrows && (
                   <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-[9px] text-white/50 tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>
                     {idx + 1}/{items.length}
                   </div>
                 )}
 
-                {/* Bottom action bar overlay */}
                 {isReady && (
                   <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center gap-2">
                     {renderActions(item)}
+                    {hasOrder && onOrder && (
+                      <button onClick={() => onOrder(item)}
+                        className="px-3 py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider"
+                        style={{ fontFamily: "'DM Mono', monospace" }}>📬 Order</button>
+                    )}
                   </div>
                 )}
               </div>
@@ -92,7 +89,7 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions }: Caro
   );
 }
 
-export default function PortraitCarousel() {
+export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) => void }) {
   const { libraryPortraits, workbenchPortraits, libIdx, wbIdx, setLibIdx, setWbIdx, moveToLibrary, dismissFromWorkbench, deleteFromLibrary } = usePortraitStore();
 
   const handleDownload = useCallback(async (url: string, style: string) => {
@@ -109,7 +106,6 @@ export default function PortraitCarousel() {
 
   return (
     <div className="flex gap-5 h-full w-full min-h-0 overflow-hidden">
-      {/* LIBRARY */}
       <div className="flex-1 flex flex-col min-w-0">
         <Carousel
           items={libraryPortraits}
@@ -117,6 +113,8 @@ export default function PortraitCarousel() {
           setIdx={setLibIdx}
           label="Library"
           emptyLabel="No saved portraits yet"
+          hasOrder={true}
+          onOrder={onOrder}
           renderActions={(item) => (
             <div className="flex gap-2">
               <button onClick={() => handleDownload(item.url, item.style)}
@@ -130,10 +128,8 @@ export default function PortraitCarousel() {
         />
       </div>
 
-      {/* DIVIDER */}
       <div className="w-px bg-white/5 flex-shrink-0" />
 
-      {/* WORKBENCH */}
       <div className="flex-1 flex flex-col min-w-0">
         <Carousel
           items={workbenchPortraits}
@@ -141,6 +137,7 @@ export default function PortraitCarousel() {
           setIdx={setWbIdx}
           label="Workbench"
           emptyLabel="Generate portraits in the builder"
+          hasOrder={false}
           renderActions={(item) => (
             <div className="flex gap-2">
               <button onClick={() => moveToLibrary(item.id)}

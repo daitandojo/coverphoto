@@ -94,7 +94,10 @@ export default function Home() {
       });
       if (!res.ok) { const err = await res.json().catch(() => ({ error: "Unknown" })); if (res.status === 402) { setShowBuyCredits(true); return; } throw new Error(err.error || `Generation failed (${res.status})`); }
       const data = await res.json();
-      data.portraits?.forEach((p: any) => updateWorkbenchPortrait(p.id, { url: p.url, status: p.status, error: p.error }));
+      data.portraits?.forEach((p: any, i: number) => {
+        const wb = usePortraitStore.getState().workbenchPortraits;
+        if (wb[i]) updateWorkbenchPortrait(wb[i].id, { url: p.url, status: p.status, error: p.error });
+      });
       if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
       setSessionId(data.sessionId || null);
       if (isFirstRun) { setShowConfetti(true); completeFirstRun(); setTimeout(() => setShowConfetti(false), 3000); }
