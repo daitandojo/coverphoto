@@ -26,7 +26,7 @@ export default function BuilderPanel() {
         {/* Standard types */}
         <div>
           <p className="text-[9px] tracking-[0.25em] text-[rgba(240,237,232,0.2)] uppercase mb-1.5" style={{ fontFamily: "'DM Mono', monospace" }}>Standards</p>
-          <div className="grid grid-cols-1 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {BRIEFS.map((brief, i) => {
               const count = typeCounters[brief.id] || 0;
               const active = count > 0;
@@ -59,7 +59,7 @@ export default function BuilderPanel() {
         {/* Specialties */}
         <div>
           <p className="text-[9px] tracking-[0.25em] text-[#C8B99A]/60 uppercase mb-1.5" style={{ fontFamily: "'DM Mono', monospace" }}>Specialties</p>
-          <div className="grid grid-cols-1 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {SPECIALTIES.map((spec, i) => {
               const count = specialCounters[spec.id] || 0;
               const active = count > 0;

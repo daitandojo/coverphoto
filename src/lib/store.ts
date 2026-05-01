@@ -23,6 +23,7 @@ interface PortraitStore {
   rightPanelPinned: boolean;
 
   typeCounters: TypeCounter;
+  generatedCounts: TypeCounter;
   promptEditEnabled: boolean;
   customPrompts: Record<string, string>;
   specialCounters: TypeCounter;
@@ -54,6 +55,7 @@ interface PortraitStore {
   selectOneOfEach: () => void;
   totalSelected: () => number;
   selectedTypesList: () => string[];
+  addPlaceholder: (id: string) => void;
   setPromptEditEnabled: (e: boolean) => void;
   setCustomPrompts: (p: Record<string, string>) => void;
 
@@ -63,6 +65,13 @@ interface PortraitStore {
 }
 
 function makeTC(): TypeCounter {
+  const c: TypeCounter = {};
+  BRIEFS.forEach((b) => (c[b.id] = 0));
+  SPECIALTIES.forEach((s) => (c[s.id] = 0));
+  return c;
+}
+
+function makeGenTC(): TypeCounter {
   const c: TypeCounter = {};
   BRIEFS.forEach((b) => (c[b.id] = 0));
   SPECIALTIES.forEach((s) => (c[s.id] = 0));
@@ -85,6 +94,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   rightPanelPinned: true,
 
   typeCounters: makeTC(),
+  generatedCounts: makeGenTC(),
   promptEditEnabled: false,
   customPrompts: {},
   specialCounters: makeTC(),
@@ -93,8 +103,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setCredits: (c) => set({ credits: c }),
   completeFirstRun: () => set({ isFirstRun: false }),
 
-  addUploadedImage: (img) =>
-    set((s) => ({ uploadedImages: s.uploadedImages.length < 3 ? [...s.uploadedImages, img] : s.uploadedImages })),
+  addUploadedImage: (img) => set((s) => ({ uploadedImages: s.uploadedImages.length < 3 ? [...s.uploadedImages, img] : s.uploadedImages })),
   removeUploadedImage: (id) => set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })),
   clearUploadedImages: () => set({ uploadedImages: [] }),
 
@@ -103,15 +112,24 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     const specs = Object.entries(get().specialCounters).flatMap(([k, v]) => Array(v).fill(k));
     const all = [...types, ...specs];
     set({
-      isGenerating: true,
+      isGenerating: true, generatedCounts: makeGenTC(),
       portraits: all.map((t, i) => ({ id: `portrait-${i}`, url: "", status: "generating" as const, style: t as any })),
     });
   },
 
-  updatePortrait: (id, u) => set((s) => ({ portraits: s.portraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
+  updatePortrait: (id, u) => {
+    set((s) => ({
+      portraits: s.portraits.map((p) => (p.id === id ? { ...p, ...u } : p)),
+    }));
+    // Track generated count per type
+    if (u.status === "completed" && u.style) {
+      set((s) => ({ generatedCounts: { ...s.generatedCounts, [u.style as string]: (s.generatedCounts[u.style as string] || 0) + 1 } }));
+    }
+  },
+
   setShowShareCard: (s) => set({ showShareCard: s }),
   setSessionId: (s) => set({ sessionId: s }),
-  resetPortraits: () => set({ portraits: [], isGenerating: false }),
+  resetPortraits: () => set({ portraits: [], isGenerating: false, generatedCounts: makeGenTC() }),
   redoPortrait: (id) => set((s) => ({ credits: s.credits - 1, portraits: s.portraits.map((p) => (p.id === id ? { ...p, status: "generating" as const, url: "" } : p)) })),
   setShowBuyCredits: (s) => set({ showBuyCredits: s }),
 
@@ -122,9 +140,35 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   pinLeftPanel: (p) => set({ leftPanelPinned: p }),
   pinRightPanel: (p) => set({ rightPanelPinned: p }),
 
-  incrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: (s.typeCounters[id] || 0) + 1 } })),
-  decrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: Math.max(0, (s.typeCounters[id] || 0) - 1) } })),
-  resetCounters: () => set({ typeCounters: makeTC(), specialCounters: makeTC(), specialFields: {} }),
+  incrementType: (id) => {
+    const s = get();
+    const hadExisting = s.portraits.length > 0;
+    set((st) => ({ typeCounters: { ...st.typeCounters, [id]: (st.typeCounters[id] || 0) + 1 } }));
+    if (hadExisting) {
+      get().addPlaceholder(id);
+    }
+  },
+
+  decrementType: (id) => {
+    const s = get();
+    const current = s.typeCounters[id] || 0;
+    const generated = s.generatedCounts[id] || 0;
+    if (current <= generated) return; // cannot go below already-generated count
+    set((st) => ({ typeCounters: { ...st.typeCounters, [id]: Math.max(0, (st.typeCounters[id] || 0) - 1) } }));
+  },
+
+  addPlaceholder: (styleId) => {
+    set((s) => ({
+      portraits: [...s.portraits, {
+        id: `portrait-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url: "",
+        status: "pending" as const,
+        style: styleId as any,
+      }],
+    }));
+  },
+
+  resetCounters: () => set({ typeCounters: makeTC(), specialCounters: makeTC(), specialFields: {}, generatedCounts: makeGenTC() }),
   selectOneOfEach: () => {
     const tc = makeTC();
     BRIEFS.forEach((b) => (tc[b.id] = 1));
@@ -136,6 +180,10 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setCustomPrompts: (p) => set({ customPrompts: p }),
 
   incrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: (s.specialCounters[id] || 0) + 1 } })),
-  decrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: Math.max(0, (s.specialCounters[id] || 0) - 1) } })),
+  decrementSpecial: (id) => {
+    const s = get();
+    if ((s.specialCounters[id] || 0) <= (s.generatedCounts[id] || 0)) return;
+    set((st) => ({ specialCounters: { ...st.specialCounters, [id]: Math.max(0, (st.specialCounters[id] || 0) - 1) } }));
+  },
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
 }));

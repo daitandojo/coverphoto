@@ -12,11 +12,12 @@ import WebcamModal from "./WebcamModal";
 import TermsModal from "./TermsModal";
 import OrderMailModal from "./OrderMailModal";
 
-const PANEL_W = 310;
+const LEFT_PANEL_W = 310;
+const RIGHT_PANEL_W = 420;
 const EDGE_HOVER_MARGIN = 59;
 const AUTO_CLOSE_MS = 8000;
 
-export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
+export default function Workbench({ onGenerate, onGeneratePending }: { onGenerate: () => void; onGeneratePending?: (style: string) => void }) {
   const { leftPanelOpen, rightPanelOpen, leftPanelPinned, rightPanelPinned, setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel, showShareCard, resetPortraits } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -49,8 +50,8 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
           <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", transform: "rotate(180deg)", letterSpacing: "0.15em" }}>📷 REF</span>
         </motion.button>}
         <AnimatePresence>{leftPanelOpen && (
-          <motion.div initial={{ x: -PANEL_W }} animate={{ x: 0 }} exit={{ x: -PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="h-full border-r border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-y-auto p-4" style={{ width: PANEL_W, minWidth: PANEL_W }}>
+          <motion.div initial={{ x: -LEFT_PANEL_W }} animate={{ x: 0 }} exit={{ x: -LEFT_PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
+            className="h-full border-r border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-y-auto p-4" style={{ width: LEFT_PANEL_W, minWidth: LEFT_PANEL_W }}>
             <RefPanel onCameraClick={() => setShowCam(true)} />
           </motion.div>
         )}</AnimatePresence>
@@ -62,7 +63,7 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
           <motion.p initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
             className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</motion.p>
           <GenerateCTA onGenerate={onGenerate} />
-          <PortraitGallery />
+          <PortraitGallery onRetry={undefined} onGeneratePending={onGeneratePending} />
           {showShareCard && <ShareCard />}
 
           {/* Action buttons below gallery */}
@@ -91,8 +92,8 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
           <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", letterSpacing: "0.15em" }}>✦ BUILD</span>
         </motion.button>}
         <AnimatePresence>{rightPanelOpen && (
-          <motion.div initial={{ x: PANEL_W }} animate={{ x: 0 }} exit={{ x: PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4" style={{ width: PANEL_W, minWidth: PANEL_W }}>
+          <motion.div initial={{ x: RIGHT_PANEL_W }} animate={{ x: 0 }} exit={{ x: RIGHT_PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
+            className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4" style={{ width: RIGHT_PANEL_W, minWidth: RIGHT_PANEL_W }}>
             <BuilderPanel />
           </motion.div>
         )}</AnimatePresence>

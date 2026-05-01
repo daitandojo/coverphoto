@@ -24,6 +24,32 @@ function fileToBase64(file: File, timeout = 15000): Promise<string> {
   });
 }
 
+// Basic image quality check — warns if photos may be too dark
+async function checkImageQuality(file: File): Promise<{ ok: boolean; warning?: string }> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const w = Math.min(bmp.width, 200);
+    const h = Math.min(bmp.height, 200);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    const avg = sum / (data.length / 4);
+    if (avg < 40) return { ok: true, warning: "One of your photos appears very dark. For best results, use well-lit, sharp reference images." };
+    if (avg < 70) return { ok: true, warning: "One of your photos seems a bit dark. Brighter lighting may improve likeness." };
+    return { ok: true };
+  } catch {
+    return { ok: true };
+  }
+}
+
 export default function Home() {
   const { data: session, status } = useSession();
   const {
@@ -56,6 +82,12 @@ export default function Home() {
     if (credits < creditCost) { setShowBuyCredits(true); return; }
     if (!session) { signIn("google"); return; }
 
+    // Quality check
+    for (const img of uploadedImages) {
+      const q = await checkImageQuality(img.file);
+      if (q.warning) { toast(q.warning, { className: "toast-custom", icon: "◎", duration: 5000 }); break; }
+    }
+
     setGenerating(true);
     usePortraitStore.getState().startGeneration();
 
@@ -86,6 +118,28 @@ export default function Home() {
       usePortraitStore.getState().resetPortraits();
     } finally { setGenerating(false); }
   }, [uploadedImages, credits, session, isFirstRun, promptEditEnabled, customPrompts, totalSelected, selectedTypesList, updatePortrait, setCredits, setSessionId, setShowBuyCredits, setShowShareCard, completeFirstRun]);
+
+  // Generate a single pending portrait
+  const handleGeneratePending = useCallback(async (style: string) => {
+    if (uploadedImages.length < 2) { toast("Upload at least 2 reference images", { className: "toast-custom", icon: "◎" }); return; }
+    if (credits < 1) { setShowBuyCredits(true); return; }
+    if (!session) { signIn("google"); return; }
+    setGenerating(true);
+    usePortraitStore.getState().startGeneration();
+    try {
+      const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
+      const res = await fetch("/api/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: imagesBase64, typeCounters: { [style]: 1 }, specialConfigs: {}, specialFields: {} }),
+      });
+      if (!res.ok) throw new Error("Generation failed");
+      const data = await res.json();
+      data.portraits?.forEach((p: any) => updatePortrait(p.id, { url: p.url, status: p.status, error: p.error }));
+      if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
+    } catch {
+      toast("Generation failed.", { className: "toast-custom", icon: "⚠" });
+    } finally { setGenerating(false); }
+  }, [uploadedImages, credits, session, updatePortrait, setCredits, setShowBuyCredits]);
 
   return (
     <>
@@ -118,7 +172,7 @@ export default function Home() {
             )}
 
             {/* WORKBENCH */}
-            {status === "authenticated" && <Workbench onGenerate={handleGenerate} />}
+            {status === "authenticated" && <Workbench onGenerate={handleGenerate} onGeneratePending={handleGeneratePending} />}
 
             {/* Loading */}
             {status === "loading" && <main className="flex-1 flex items-center justify-center"><div className="shimmer w-8 h-8 rounded-full" /></main>}
