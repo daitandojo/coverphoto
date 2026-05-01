@@ -56,13 +56,13 @@ export async function POST(request: Request) {
     const refUrls = await Promise.all(images.slice(0, 3).map((img: string, i: number) => uploadRef(img, email, i)));
     apiLog(`[${reqId}] Refs uploaded`, { count: refUrls.length });
 
-    // Generate sequentially — Replicate free tier: 1 burst, 6/min
+    // Generate with concurrency limit of 2 (avoids Replicate rate limits)
+    const CONCURRENCY = 2;
     const generatedPortraits: Array<{
       id: string; style: string; url: string; status: "completed" | "error"; error?: string;
     }> = [];
 
-    for (let i = 0; i < briefs.length; i++) {
-      const brief = briefs[i];
+    async function generateOne(brief: (typeof briefs)[0], i: number) {
       const prompt = customPrompts?.[brief.id] || brief.prompt;
       const start = Date.now();
 
@@ -78,13 +78,8 @@ export async function POST(request: Request) {
         });
 
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Replicate ${brief.id}`, {
-          elapsed: `${elapsed}ms`,
-          outputType: typeof output,
-          outputStr: JSON.stringify(output).slice(0, 500),
-        });
+        apiLog(`[${reqId}] Replicate ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 200) });
 
-        // Try multiple output formats Replicate might use
         let imageUrl = "";
         if (Array.isArray(output)) {
           const first = output[0];
@@ -93,9 +88,6 @@ export async function POST(request: Request) {
           } else if (first && typeof first === "object") {
             const obj = first as Record<string, unknown>;
             imageUrl = (obj.url || obj.image_url || obj.image || obj.output || "") as string;
-            if (!imageUrl && obj.output && typeof obj.output === "string") {
-              imageUrl = obj.output;
-            }
           }
         } else if (typeof output === "string") {
           imageUrl = output;
@@ -129,14 +121,14 @@ export async function POST(request: Request) {
           status: "error",
           error: reason,
         });
-
-        // If rate limited, wait before next request
-        if (reason.includes("429") || reason.includes("throttled")) {
-          const wait = 12_000;
-          apiLog(`[${reqId}] Rate limited — waiting ${wait / 1000}s`);
-          await new Promise((r) => setTimeout(r, wait));
-        }
       }
+    }
+
+    // Semaphore — run 2 at a time
+    const queue = briefs.map((b, i) => ({ brief: b, index: i }));
+    for (let i = 0; i < queue.length; i += CONCURRENCY) {
+      const batch = queue.slice(i, i + CONCURRENCY);
+      await Promise.all(batch.map(({ brief, index }) => generateOne(brief, index)));
     }
 
     const ok = generatedPortraits.filter((p) => p.status === "completed").length;
