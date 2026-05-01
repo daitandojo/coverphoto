@@ -162,7 +162,7 @@ export default function Home() {
                 </motion.div>
               </main>
             )}
-            {status === "authenticated" && <Workbench onGenerate={handleGenerate} onRetry={handleRetryOne}
+            {status === "authenticated" && <Workbench onGenerate={handleGenerate}
               canGenerate={(() => {
                 const t = totalSelected();
                 return t >= 1 && uploadedImages.length >= 2 && credits >= t + (promptEditEnabled ? 2 : 0) && !generating;

@@ -15,12 +15,11 @@ const RIGHT_PANEL_W = 500;
 
 interface WorkbenchProps {
   onGenerate: () => void;
-  onRetry?: (id: string, style: string) => void;
   canGenerate: boolean;
   genReason: string;
 }
 
-export default function Workbench({ onGenerate, onRetry, canGenerate, genReason }: WorkbenchProps) {
+export default function Workbench({ onGenerate, canGenerate, genReason }: WorkbenchProps) {
   const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel, workbenchPortraits, resetWorkbench, clearUploadedImages } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -81,7 +80,7 @@ export default function Workbench({ onGenerate, onRetry, canGenerate, genReason 
           </div>
         </div>
         <div className="flex-1 min-h-0">
-          <PortraitCarousel onRetry={onRetry} />
+          <PortraitCarousel />
         </div>
       </main>
 
