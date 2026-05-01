@@ -56,43 +56,65 @@ export async function POST(request: Request) {
     const refUrls = await Promise.all(images.slice(0, 3).map((img: string, i: number) => uploadRef(img, email, i)));
     apiLog(`[${reqId}] Refs uploaded`, { count: refUrls.length });
 
-    const results = await Promise.allSettled(
-      briefs.map(async (brief) => {
-        const prompt = customPrompts?.[brief.id] || brief.prompt;
-        const start = Date.now();
+    // Generate sequentially — Replicate free tier: 1 burst, 6/min
+    const generatedPortraits: Array<{
+      id: string; style: string; url: string; status: "completed" | "error"; error?: string;
+    }> = [];
 
+    for (let i = 0; i < briefs.length; i++) {
+      const brief = briefs[i];
+      const prompt = customPrompts?.[brief.id] || brief.prompt;
+      const start = Date.now();
+
+      try {
         const output = await replicate.run("openai/gpt-image-2", {
           input: {
             prompt,
             input_images: refUrls,
             aspect_ratio: "1:1",
             number_of_images: 1,
+            openai_api_key: process.env.OPENAI_API_KEY,
           },
         });
 
         const elapsed = Date.now() - start;
         apiLog(`[${reqId}] Replicate ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 200) });
 
-        // Output is typically a URL string or array of strings
         const imageUrl: string = Array.isArray(output) ? String(output[0] || "") : String(output || "");
-        if (!imageUrl || (!imageUrl.startsWith("http") && !imageUrl.includes("replicate"))) {
+        if (!imageUrl || !imageUrl.startsWith("http")) {
           throw new Error(`Bad output: ${JSON.stringify(output).slice(0, 150)}`);
         }
 
         const resp = await fetch(imageUrl);
-        if (!resp.ok) throw new Error(`Fetch image failed: ${resp.status}`);
+        if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
         const buffer = Buffer.from(await resp.arrayBuffer());
         const watermarked = await applyWatermark(buffer, false);
-        return { style: brief.id, url: `data:image/jpeg;base64,${watermarked.toString("base64")}` };
-      })
-    );
 
-    const generatedPortraits = results.map((r, i) => {
-      if (r.status === "fulfilled") return { id: `portrait-${i}`, style: r.value.style, url: r.value.url, status: "completed" as const };
-      const reason = r.reason?.message || "Generation failed.";
-      apiError(`[${reqId}] Portrait ${i} failed`, { error: reason.slice(0, 200) });
-      return { id: `portrait-${i}`, style: briefs[i]?.id || "unknown", url: "", status: "error" as const, error: reason };
-    });
+        generatedPortraits.push({
+          id: `portrait-${i}`,
+          style: brief.id,
+          url: `data:image/jpeg;base64,${watermarked.toString("base64")}`,
+          status: "completed",
+        });
+      } catch (err: any) {
+        const reason = err?.message || "Generation failed.";
+        apiError(`[${reqId}] Portrait ${i} failed`, { error: reason.slice(0, 200) });
+        generatedPortraits.push({
+          id: `portrait-${i}`,
+          style: brief.id,
+          url: "",
+          status: "error",
+          error: reason,
+        });
+
+        // If rate limited, wait before next request
+        if (reason.includes("429") || reason.includes("throttled")) {
+          const wait = 12_000;
+          apiLog(`[${reqId}] Rate limited — waiting ${wait / 1000}s`);
+          await new Promise((r) => setTimeout(r, wait));
+        }
+      }
+    }
 
     const ok = generatedPortraits.filter((p) => p.status === "completed").length;
     apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok });
