@@ -73,16 +73,39 @@ export async function POST(request: Request) {
             input_images: refUrls,
             aspect_ratio: "1:1",
             number_of_images: 1,
-            openai_api_key: process.env.OPENAI_API_KEY,
+            output_format: "png",
           },
         });
 
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Replicate ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 200) });
+        apiLog(`[${reqId}] Replicate ${brief.id}`, {
+          elapsed: `${elapsed}ms`,
+          outputType: typeof output,
+          outputStr: JSON.stringify(output).slice(0, 500),
+        });
 
-        const imageUrl: string = Array.isArray(output) ? String(output[0] || "") : String(output || "");
+        // Try multiple output formats Replicate might use
+        let imageUrl = "";
+        if (Array.isArray(output)) {
+          const first = output[0];
+          if (typeof first === "string" && first.startsWith("http")) {
+            imageUrl = first;
+          } else if (first && typeof first === "object") {
+            const obj = first as Record<string, unknown>;
+            imageUrl = (obj.url || obj.image_url || obj.image || outputs || "") as string;
+            if (!imageUrl && obj.output && typeof obj.output === "string") {
+              imageUrl = obj.output;
+            }
+          }
+        } else if (typeof output === "string") {
+          imageUrl = output;
+        } else if (output && typeof output === "object") {
+          const obj = output as Record<string, unknown>;
+          imageUrl = (obj.url || obj.image_url || obj.output || "") as string;
+        }
+
         if (!imageUrl || !imageUrl.startsWith("http")) {
-          throw new Error(`Bad output: ${JSON.stringify(output).slice(0, 150)}`);
+          throw new Error(`No URL in output: ${JSON.stringify(output).slice(0, 200)}`);
         }
 
         const resp = await fetch(imageUrl);
