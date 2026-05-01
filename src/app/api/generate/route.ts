@@ -14,6 +14,54 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+// Models that accept reference images via responses.create
+const IMAGE_MODELS = [
+  "gpt-image-2",
+  "chatgpt-image-latest",
+  "gpt-4.1",
+];
+
+async function generateOne(briefId: string, prompt: string, images: string[]): Promise<string> {
+  const refContent = images.slice(0, 3).map((img: string) => ({
+    type: "input_image" as const,
+    image_url: img,
+  }));
+
+  const input = [{
+    role: "user" as const,
+    content: [
+      { type: "input_text" as const, text: prompt },
+      ...refContent,
+    ],
+  }];
+
+  let lastError: Error | null = null;
+
+  for (const model of IMAGE_MODELS) {
+    try {
+      const resp = await (openai.responses as any).create({ model, input });
+      const outputImage = (resp.output || [])
+        .flatMap((o: any) => o.content || [])
+        .find((c: any) => c.type === "output_image");
+      if (outputImage?.image_base64) {
+        apiLog(`  ${briefId}: ${model} ✓`);
+        return outputImage.image_base64;
+      }
+      lastError = new Error("No image in output");
+    } catch (e: any) {
+      const msg = e?.message || "";
+      if (msg.includes("not found") || msg.includes("does not exist")) {
+        apiLog(`  ${briefId}: ${model} ✗ (unavailable, trying next)`);
+        lastError = e;
+        continue;
+      }
+      throw e; // unexpected error, don't retry
+    }
+  }
+
+  throw lastError || new Error("No available image model succeeded");
+}
+
 export async function POST(request: Request) {
   const reqId = Math.random().toString(36).slice(2, 8);
   apiLog(`[${reqId}] POST /api/generate`);
@@ -59,27 +107,15 @@ export async function POST(request: Request) {
     }
     apiLog(`[${reqId}] Briefs`, { count: briefs.length, names: briefs.map((b) => b.id) });
 
-    // Raw base64 (strip data:image prefix) for images.generate input
-    const refBase64 = images.slice(0, 3).map((img: string) => img.split(",")[1] || img);
-
-    // Generate all portraits in parallel
     const results = await Promise.allSettled(
       briefs.map(async (brief) => {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
         const start = Date.now();
 
-        const resp = await (openai.images.generate as any)({
-          model: "gpt-image-2",
-          prompt: effectivePrompt,
-          size: "1024x1024",
-          n: 1,
-          input_images: refBase64,
-        });
+        const b64 = await generateOne(brief.id, effectivePrompt, images);
 
-        apiLog(`[${reqId}] OpenAI ${brief.id}`, { elapsed: `${Date.now() - start}ms` });
-
-        const b64 = resp.data?.[0]?.b64_json;
-        if (!b64) throw new Error("No image generated");
+        const elapsed = Date.now() - start;
+        apiLog(`[${reqId}] Done ${brief.id}`, { elapsed: `${elapsed}ms` });
 
         const buffer = Buffer.from(b64, "base64");
         const watermarked = await applyWatermark(buffer, false);
@@ -111,7 +147,6 @@ export async function POST(request: Request) {
     const okCount = generatedPortraits.filter((p) => p.status === "completed").length;
     apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok: okCount });
 
-    // Deduct only if at least one portrait succeeded
     if (okCount > 0) {
       await prisma.user.update({
         where: { id: user.id },
