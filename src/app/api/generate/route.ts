@@ -92,7 +92,7 @@ export async function POST(request: Request) {
             imageUrl = first;
           } else if (first && typeof first === "object") {
             const obj = first as Record<string, unknown>;
-            imageUrl = (obj.url || obj.image_url || obj.image || outputs || "") as string;
+            imageUrl = (obj.url || obj.image_url || obj.image || obj.output || "") as string;
             if (!imageUrl && obj.output && typeof obj.output === "string") {
               imageUrl = obj.output;
             }
