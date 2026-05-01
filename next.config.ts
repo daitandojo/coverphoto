@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "oaidalleapiprodscus.blob.core.windows.net" },
     ],
   },
-  serverExternalPackages: ["@prisma/client", "sharp"],
+  serverExternalPackages: ["@prisma/client", "sharp", "replicate", "@vercel/blob"],
 };
 
 export default nextConfig;

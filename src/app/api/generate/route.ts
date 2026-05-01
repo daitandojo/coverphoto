@@ -4,62 +4,22 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
 import { getBriefs } from "@/lib/prompts";
-import OpenAI from "openai";
+import Replicate from "replicate";
 
 const LOG = "[CoverPhoto:API]";
 function apiLog(...args: any[]) { console.log(LOG, ...args); }
 function apiError(...args: any[]) { console.error(LOG, "[ERROR]", ...args); }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
 });
 
-// Models that accept reference images via responses.create
-const IMAGE_MODELS = [
-  "gpt-image-2",
-  "chatgpt-image-latest",
-  "gpt-4.1",
-];
-
-async function generateOne(briefId: string, prompt: string, images: string[]): Promise<string> {
-  const refContent = images.slice(0, 3).map((img: string) => ({
-    type: "input_image" as const,
-    image_url: img,
-  }));
-
-  const input = [{
-    role: "user" as const,
-    content: [
-      { type: "input_text" as const, text: prompt },
-      ...refContent,
-    ],
-  }];
-
-  let lastError: Error | null = null;
-
-  for (const model of IMAGE_MODELS) {
-    try {
-      const resp = await (openai.responses as any).create({ model, input });
-      const outputImage = (resp.output || [])
-        .flatMap((o: any) => o.content || [])
-        .find((c: any) => c.type === "output_image");
-      if (outputImage?.image_base64) {
-        apiLog(`  ${briefId}: ${model} ✓`);
-        return outputImage.image_base64;
-      }
-      lastError = new Error("No image in output");
-    } catch (e: any) {
-      const msg = e?.message || "";
-      if (msg.includes("not found") || msg.includes("does not exist")) {
-        apiLog(`  ${briefId}: ${model} ✗ (unavailable, trying next)`);
-        lastError = e;
-        continue;
-      }
-      throw e; // unexpected error, don't retry
-    }
-  }
-
-  throw lastError || new Error("No available image model succeeded");
+async function uploadRef(base64: string, email: string, i: number): Promise<string> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return base64;
+  const { put } = await import("@vercel/blob");
+  const buf = Buffer.from(base64.split(",")[1] || base64, "base64");
+  const { url } = await put(`refs/${email}/${Date.now()}-${i}.jpg`, buf, { access: "public" });
+  return url;
 }
 
 export async function POST(request: Request) {
@@ -68,112 +28,87 @@ export async function POST(request: Request) {
 
   try {
     const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    apiLog(`[${reqId}] Auth`, { email: session.user.email });
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const rateCheck = await checkRateLimit(session.user.email);
-    if (!rateCheck.success) {
-      return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
-    }
+    if (!rateCheck.success) return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    apiLog(`[${reqId}] Credits`, { credits: user.credits });
+    apiLog(`[${reqId}] User`, { credits: user.credits });
 
     const { images, count = 4, selectedTypes, customPrompts } = await request.json();
-    apiLog(`[${reqId}] Request`, { images: images?.length, count, types: selectedTypes?.length });
-
-    if (!images || !Array.isArray(images) || images.length < 2) {
+    if (!images?.length || images.length < 2) {
       return NextResponse.json({ error: "At least 2 reference images required" }, { status: 400 });
     }
 
     const promptEditEnabled = customPrompts && Object.keys(customPrompts).length > 0;
     const creditCost = count + (promptEditEnabled ? 2 : 0);
-
     if (user.credits < creditCost) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
-    const briefs = getBriefs(
-      selectedTypes?.length > 0 ? selectedTypes : ["executive", "founder", "statesperson", "outdoors"]
-    );
+    const briefs = getBriefs(selectedTypes?.length ? selectedTypes : ["executive","founder","statesperson","outdoors"]);
     briefs.length = Math.min(briefs.length, count);
-    if (briefs.length === 0) {
-      return NextResponse.json({ error: "No valid portrait types selected" }, { status: 400 });
-    }
-    apiLog(`[${reqId}] Briefs`, { count: briefs.length, names: briefs.map((b) => b.id) });
+    if (!briefs.length) return NextResponse.json({ error: "No valid portrait types" }, { status: 400 });
+
+    const email = session.user!.email!;
+    const refUrls = await Promise.all(images.map((img: string, i: number) => uploadRef(img, email, i)));
+    apiLog(`[${reqId}] Refs uploaded`, { count: refUrls.length });
 
     const results = await Promise.allSettled(
       briefs.map(async (brief) => {
-        const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
+        const prompt = customPrompts?.[brief.id] || brief.prompt;
         const start = Date.now();
 
-        const b64 = await generateOne(brief.id, effectivePrompt, images);
+        const output = await replicate.run("openai/gpt-image-2", {
+          input: {
+            prompt,
+            input_images: refUrls,
+            aspect_ratio: "1:1",
+            number_of_images: 1,
+          },
+        });
 
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Done ${brief.id}`, { elapsed: `${elapsed}ms` });
+        apiLog(`[${reqId}] Replicate ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 200) });
 
-        const buffer = Buffer.from(b64, "base64");
+        // Output is typically a URL string or array of strings
+        const imageUrl: string = Array.isArray(output) ? String(output[0] || "") : String(output || "");
+        if (!imageUrl || (!imageUrl.startsWith("http") && !imageUrl.includes("replicate"))) {
+          throw new Error(`Bad output: ${JSON.stringify(output).slice(0, 150)}`);
+        }
+
+        const resp = await fetch(imageUrl);
+        if (!resp.ok) throw new Error(`Fetch image failed: ${resp.status}`);
+        const buffer = Buffer.from(await resp.arrayBuffer());
         const watermarked = await applyWatermark(buffer, false);
-        const finalB64 = watermarked.toString("base64");
-        return { style: brief.id, url: `data:image/jpeg;base64,${finalB64}` };
+        return { style: brief.id, url: `data:image/jpeg;base64,${watermarked.toString("base64")}` };
       })
     );
 
-    const generatedPortraits = results.map((result, index) => {
-      if (result.status === "fulfilled") {
-        return {
-          id: `portrait-${index}`,
-          style: result.value.style,
-          url: result.value.url,
-          status: "completed" as const,
-        };
-      }
-      const reason = result.reason?.message || "Generation failed.";
-      apiError(`[${reqId}] Portrait ${index} failed`, { error: reason.slice(0, 200) });
-      return {
-        id: `portrait-${index}`,
-        style: briefs[index]?.id || "unknown",
-        url: "",
-        status: "error" as const,
-        error: reason,
-      };
+    const generatedPortraits = results.map((r, i) => {
+      if (r.status === "fulfilled") return { id: `portrait-${i}`, style: r.value.style, url: r.value.url, status: "completed" as const };
+      const reason = r.reason?.message || "Generation failed.";
+      apiError(`[${reqId}] Portrait ${i} failed`, { error: reason.slice(0, 200) });
+      return { id: `portrait-${i}`, style: briefs[i]?.id || "unknown", url: "", status: "error" as const, error: reason };
     });
 
-    const okCount = generatedPortraits.filter((p) => p.status === "completed").length;
-    apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok: okCount });
+    const ok = generatedPortraits.filter((p) => p.status === "completed").length;
+    apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok });
 
-    if (okCount > 0) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { credits: { decrement: creditCost } },
-      });
-      apiLog(`[${reqId}] Deducted`, { cost: creditCost });
-    } else {
-      apiLog(`[${reqId}] All failed — no deduction`);
+    if (ok > 0) {
+      await prisma.user.update({ where: { id: user.id }, data: { credits: { decrement: creditCost } } });
     }
 
-    const portraitSession = await prisma.portraitSessionRecord.create({
-      data: {
-        userId: user.id,
-        images: JSON.stringify(images.map((i: string) => i.slice(0, 50))),
-        portraits: JSON.stringify(generatedPortraits),
-      },
+    await prisma.portraitSessionRecord.create({
+      data: { userId: user.id, images: JSON.stringify(refUrls), portraits: JSON.stringify(generatedPortraits) },
     });
 
-    return NextResponse.json({
-      sessionId: portraitSession.id,
-      portraits: generatedPortraits,
-      creditsRemaining: okCount > 0 ? user.credits - creditCost : user.credits,
-    });
+    return NextResponse.json({ portraits: generatedPortraits, creditsRemaining: ok > 0 ? user.credits - creditCost : user.credits });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Generation failed";
     apiError(`[${reqId}] Catch`, { message: msg });
-    console.error("Generation error:", error);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
