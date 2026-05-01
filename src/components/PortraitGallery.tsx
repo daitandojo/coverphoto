@@ -9,18 +9,21 @@ interface PortraitGalleryProps {
 }
 
 export default function PortraitGallery({ onRetry }: PortraitGalleryProps) {
-  const { portraits, portraitCount } = usePortraitStore();
+  const { portraits, totalSelected } = usePortraitStore();
+  const count = totalSelected();
   const show = portraits.some((p) => p.status !== "pending");
 
   if (!show) return null;
 
   let gridClass = "grid grid-cols-2 lg:grid-cols-4 gap-4";
-  if (portraitCount === 1) {
+  if (count === 1) {
     gridClass = "flex justify-center";
-  } else if (portraitCount === 8) {
-    gridClass = "grid grid-cols-2 md:grid-cols-4 gap-4";
-  } else if (portraitCount === 12) {
-    gridClass = "grid grid-cols-3 md:grid-cols-4 gap-4";
+  } else if (count === 2) {
+    gridClass = "grid grid-cols-2 gap-4 max-w-lg mx-auto";
+  } else if (count <= 4) {
+    gridClass = "grid grid-cols-2 lg:grid-cols-4 gap-4";
+  } else {
+    gridClass = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
   }
 
   return (
@@ -31,8 +34,8 @@ export default function PortraitGallery({ onRetry }: PortraitGalleryProps) {
       className={gridClass}
     >
       {portraits.map((portrait, i) => (
-        <div key={portrait.id} className={portraitCount === 1 ? "w-[400px]" : ""}>
-          <PortraitCard portrait={portrait} index={i} large={portraitCount === 1} onRetry={onRetry} />
+        <div key={portrait.id} className={count === 1 ? "w-[400px]" : ""}>
+          <PortraitCard portrait={portrait} index={i} large={count === 1} onRetry={onRetry} />
         </div>
       ))}
     </motion.section>

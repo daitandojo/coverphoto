@@ -37,19 +37,25 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
     apiLog(`[${reqId}] User`, { credits: user.credits });
 
-    const { images, count = 4, selectedTypes, customPrompts } = await request.json();
+    const { images, typeCounters, customPrompts } = await request.json();
     if (!images?.length || images.length < 2) {
       return NextResponse.json({ error: "At least 2 reference images required" }, { status: 400 });
     }
 
+    // Expand typeCounters into ordered types list
+    const orderedTypes = Object.entries(typeCounters || {})
+      .flatMap(([type, cnt]) => Array(cnt as number).fill(type));
+    if (orderedTypes.length === 0) {
+      return NextResponse.json({ error: "No portrait types selected" }, { status: 400 });
+    }
+
     const promptEditEnabled = customPrompts && Object.keys(customPrompts).length > 0;
-    const creditCost = count + (promptEditEnabled ? 2 : 0);
+    const creditCost = orderedTypes.length + (promptEditEnabled ? 2 : 0);
     if (user.credits < creditCost) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
-    const briefs = getBriefs(selectedTypes?.length ? selectedTypes : ["executive","founder","statesperson","outdoors"]);
-    briefs.length = Math.min(briefs.length, count);
+    const briefs = getBriefs(orderedTypes);
     if (!briefs.length) return NextResponse.json({ error: "No valid portrait types" }, { status: 400 });
 
     const email = session.user!.email!;

@@ -8,58 +8,46 @@ interface GenerateCTAProps {
 }
 
 export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
-  const { uploadedImages, credits, isGenerating, portraitCount, selectedTypes, promptEditEnabled } =
-    usePortraitStore();
+  const { credits, isGenerating, totalSelected, promptEditEnabled, uploadedImages } = usePortraitStore();
 
-  const creditCost = portraitCount + (promptEditEnabled ? 2 : 0);
-  const missingImages = 2 - uploadedImages.length;
-  const canGenerate = uploadedImages.length >= 2 && credits >= creditCost && !isGenerating && selectedTypes.length > 0;
+  const total = totalSelected();
+  const creditCost = total + (promptEditEnabled ? 2 : 0);
 
-  let disabledReason = "";
-  if (uploadedImages.length < 2) {
-    disabledReason = `${missingImages} more image${missingImages > 1 ? "s" : ""} needed`;
-  } else if (credits < creditCost) {
-    disabledReason = "Insufficient credits";
-  } else if (selectedTypes.length === 0) {
-    disabledReason = "Select a portrait type";
-  }
+  let disabled = false;
+  let reason = "";
+  if (total < 1) { disabled = true; reason = "Select portrait types"; }
+  else if (uploadedImages.length < 2) { disabled = true; reason = `${2 - uploadedImages.length} more image${2 - uploadedImages.length !== 1 ? "s" : ""} needed`; }
+  else if (credits < creditCost) { disabled = true; reason = "Insufficient credits"; }
 
   return (
-    <motion.section
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
-      className="flex flex-col items-center gap-2"
+      className="flex flex-col items-center gap-3 w-full"
     >
       <motion.button
         onClick={onGenerate}
-        disabled={!canGenerate}
-        whileHover={canGenerate ? { y: -2 } : {}}
-        whileTap={canGenerate ? { scale: 0.98 } : {}}
-        className={`relative w-full max-w-md py-4 rounded-xl text-center transition-all duration-200 ${
-          canGenerate
-            ? "border border-[#C8B99A] pulse-glow cursor-pointer text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
-            : "border border-white/5 opacity-40 cursor-not-allowed text-[rgba(240,237,232,0.3)]"
+        disabled={disabled || isGenerating}
+        whileHover={!disabled && !isGenerating ? { y: -2 } : {}}
+        whileTap={!disabled && !isGenerating ? { scale: 0.98 } : {}}
+        className={`relative w-full py-5 rounded-xl text-center transition-all duration-200 ${
+          disabled || isGenerating
+            ? "border border-white/5 opacity-40 cursor-not-allowed text-[rgba(240,237,232,0.3)]"
+            : "border border-[#C8B99A] pulse-glow cursor-pointer text-[#C8B99A] bg-[rgba(200,185,154,0.05)]"
         }`}
         style={{ fontFamily: "'DM Mono', monospace" }}
       >
-        <span className="gold-corner top-left" />
-        <span className="gold-corner top-right" />
-        <span className="gold-corner bottom-left" />
-        <span className="gold-corner bottom-right" />
-
-        <span className="text-sm tracking-widest uppercase">
-          {isGenerating
-            ? "Generating..."
-            : `Generate ${portraitCount} Portrait${portraitCount > 1 ? "s" : ""}`}
+        <span className="gold-corner top-left" /><span className="gold-corner top-right" />
+        <span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" />
+        <span className="text-base tracking-widest uppercase">
+          {isGenerating ? "Generating..." : `Generate ${total} Portrait${total !== 1 ? "s" : ""}`}
         </span>
       </motion.button>
 
       <p className="text-xs text-[rgba(240,237,232,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-        {disabledReason || (
-          <>{creditCost} credit{creditCost > 1 ? "s" : ""} · {credits} remaining{promptEditEnabled && " · ✦ Custom prompts"}</>
-        )}
+        {reason || <>{creditCost} credit{creditCost !== 1 ? "s" : ""} · {credits} remaining{promptEditEnabled && " · ✦ Custom prompts"}</>}
       </p>
-    </motion.section>
+    </motion.div>
   );
 }

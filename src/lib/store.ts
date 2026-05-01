@@ -1,143 +1,160 @@
 "use client";
 
 import { create } from "zustand";
-import type { PortraitImage, PortraitStyle, UploadedImage } from "@/types";
+import type { PortraitImage, UploadedImage } from "@/types";
+import { BRIEFS } from "@/lib/prompts";
+
+type TypeCounter = Record<string, number>;
 
 interface PortraitStore {
+  // Credits
   credits: number;
+  isFirstRun: boolean;
+
+  // Upload
   uploadedImages: UploadedImage[];
+
+  // Generation
   portraits: PortraitImage[];
   isGenerating: boolean;
-  showBuyCredits: boolean;
   showShareCard: boolean;
-  isFirstRun: boolean;
   sessionId: string | null;
 
-  // New: tier & type selection
-  portraitCount: number;
-  selectedTypes: string[];
-  showTypePicker: boolean;
+  // Panels
+  leftPanelOpen: boolean;
+  rightPanelOpen: boolean;
+  leftPanelPinned: boolean;
+  rightPanelPinned: boolean;
+
+  // Builder
+  typeCounters: TypeCounter;
   promptEditEnabled: boolean;
   customPrompts: Record<string, string>;
 
-  setCredits: (credits: number) => void;
-  deductCredits: (amount: number) => void;
-  addUploadedImage: (image: UploadedImage) => void;
+  // Credit modal
+  showBuyCredits: boolean;
+
+  // Actions
+  setCredits: (c: number) => void;
+  completeFirstRun: () => void;
+  addUploadedImage: (img: UploadedImage) => void;
   removeUploadedImage: (id: string) => void;
   clearUploadedImages: () => void;
   startGeneration: () => void;
-  updatePortrait: (id: string, updates: Partial<PortraitImage>) => void;
-  setShowBuyCredits: (show: boolean) => void;
-  setShowShareCard: (show: boolean) => void;
-  setSessionId: (id: string | null) => void;
+  updatePortrait: (id: string, u: Partial<PortraitImage>) => void;
+  setShowShareCard: (s: boolean) => void;
+  setSessionId: (s: string | null) => void;
   resetPortraits: () => void;
   redoPortrait: (id: string) => void;
-  completeFirstRun: () => void;
+  setShowBuyCredits: (s: boolean) => void;
 
-  // New actions
-  setPortraitCount: (count: number) => void;
-  setSelectedTypes: (types: string[]) => void;
-  toggleType: (typeId: string) => void;
-  setShowTypePicker: (show: boolean) => void;
-  setPromptEditEnabled: (enabled: boolean) => void;
-  setCustomPrompts: (prompts: Record<string, string>) => void;
-  selectAll: () => void;
-  selectNone: () => void;
+  // Panel actions
+  toggleLeftPanel: () => void;
+  toggleRightPanel: () => void;
+  setLeftPanelOpen: (o: boolean) => void;
+  setRightPanelOpen: (o: boolean) => void;
+  pinLeftPanel: (p: boolean) => void;
+  pinRightPanel: (p: boolean) => void;
+
+  // Builder actions
+  incrementType: (id: string) => void;
+  decrementType: (id: string) => void;
+  resetCounters: () => void;
+  totalSelected: () => number;
+  selectedTypesList: () => string[];
+  setPromptEditEnabled: (e: boolean) => void;
+  setCustomPrompts: (p: Record<string, string>) => void;
+}
+
+function makeCounters(): TypeCounter {
+  const c: TypeCounter = {};
+  BRIEFS.forEach((b) => (c[b.id] = 0));
+  return c;
 }
 
 export const usePortraitStore = create<PortraitStore>((set, get) => ({
   credits: 0,
+  isFirstRun: true,
   uploadedImages: [],
   portraits: [],
   isGenerating: false,
-  showBuyCredits: false,
   showShareCard: false,
-  isFirstRun: true,
   sessionId: null,
+  showBuyCredits: false,
 
-  portraitCount: 4,
-  selectedTypes: ["executive", "founder", "statesperson", "outdoors"],
-  showTypePicker: false,
+  leftPanelOpen: false,
+  rightPanelOpen: false,
+  leftPanelPinned: false,
+  rightPanelPinned: false,
+
+  typeCounters: makeCounters(),
   promptEditEnabled: false,
   customPrompts: {},
 
-  setCredits: (credits) => set({ credits }),
+  setCredits: (c) => set({ credits: c }),
+  completeFirstRun: () => set({ isFirstRun: false }),
 
-  deductCredits: (amount) =>
-    set((state) => ({ credits: Math.max(0, state.credits - amount) })),
-
-  addUploadedImage: (image) =>
-    set((state) => ({
-      uploadedImages:
-        state.uploadedImages.length < 4
-          ? [...state.uploadedImages, image]
-          : state.uploadedImages,
+  addUploadedImage: (img) =>
+    set((s) => ({
+      uploadedImages: s.uploadedImages.length < 4 ? [...s.uploadedImages, img] : s.uploadedImages,
     })),
-
   removeUploadedImage: (id) =>
-    set((state) => ({
-      uploadedImages: state.uploadedImages.filter((img) => img.id !== id),
-    })),
-
+    set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })),
   clearUploadedImages: () => set({ uploadedImages: [] }),
 
-  startGeneration: () =>
-    set((state) => ({
+  startGeneration: () => {
+    const typesList = get().selectedTypesList();
+    set({
       isGenerating: true,
-      portraits: state.selectedTypes.map((t, i) => ({
+      portraits: typesList.map((t, i) => ({
         id: `portrait-${i}`,
         url: "",
         status: "generating" as const,
-        style: t as PortraitStyle,
+        style: t as any,
       })),
-    })),
+    });
+  },
 
-  updatePortrait: (id, updates) =>
-    set((state) => ({
-      portraits: state.portraits.map((p) =>
-        p.id === id ? { ...p, ...updates } : p
-      ),
-    })),
-
-  setShowBuyCredits: (show) => set({ showBuyCredits: show }),
-
-  setShowShareCard: (show) => set({ showShareCard: show }),
-
-  setSessionId: (id) => set({ sessionId: id }),
-
-  resetPortraits: () =>
-    set({ portraits: [], isGenerating: false }),
-
+  updatePortrait: (id, u) =>
+    set((s) => ({ portraits: s.portraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
+  setShowShareCard: (s) => set({ showShareCard: s }),
+  setSessionId: (s) => set({ sessionId: s }),
+  resetPortraits: () => set({ portraits: [], isGenerating: false }),
   redoPortrait: (id) =>
-    set((state) => ({
-      credits: state.credits - 1,
-      portraits: state.portraits.map((p) =>
+    set((s) => ({
+      credits: s.credits - 1,
+      portraits: s.portraits.map((p) =>
         p.id === id ? { ...p, status: "generating" as const, url: "" } : p
       ),
     })),
+  setShowBuyCredits: (s) => set({ showBuyCredits: s }),
 
-  completeFirstRun: () => set({ isFirstRun: false }),
+  // Panels
+  toggleLeftPanel: () =>
+    set((s) => ({ leftPanelOpen: !s.leftPanelOpen, leftPanelPinned: !s.leftPanelOpen ? true : s.leftPanelPinned })),
+  toggleRightPanel: () =>
+    set((s) => ({ rightPanelOpen: !s.rightPanelOpen, rightPanelPinned: !s.rightPanelOpen ? true : s.rightPanelPinned })),
+  setLeftPanelOpen: (o) => set({ leftPanelOpen: o }),
+  setRightPanelOpen: (o) => set({ rightPanelOpen: o }),
+  pinLeftPanel: (p) => set({ leftPanelPinned: p }),
+  pinRightPanel: (p) => set({ rightPanelPinned: p }),
 
-  setPortraitCount: (count) => set({ portraitCount: count }),
-  setSelectedTypes: (types) => set({ selectedTypes: types }),
-  toggleType: (typeId) =>
-    set((state) => {
-      const isSelected = state.selectedTypes.includes(typeId);
-      const max = state.portraitCount;
-      if (isSelected) {
-        // Allow deselecting unless it would leave us empty
-        if (state.selectedTypes.length <= 1) return state;
-        return { selectedTypes: state.selectedTypes.filter((t) => t !== typeId) };
-      }
-      // At max capacity? Replace the oldest selection
-      if (state.selectedTypes.length >= max) {
-        return { selectedTypes: [...state.selectedTypes.slice(1), typeId] };
-      }
-      return { selectedTypes: [...state.selectedTypes, typeId] };
-    }),
-  setShowTypePicker: (show) => set({ showTypePicker: show }),
-  setPromptEditEnabled: (enabled) => set({ promptEditEnabled: enabled }),
-  setCustomPrompts: (prompts) => set({ customPrompts: prompts }),
-  selectAll: () => set((state) => ({ selectedTypes: state.selectedTypes.length >= 12 ? [] : ["executive","founder","statesperson","outdoors","passport","linkedin","artist","athlete","scholar","minimalist","romantic","maverick"] })),
-  selectNone: () => set({ selectedTypes: [] }),
+  // Builder
+  incrementType: (id) =>
+    set((s) => ({ typeCounters: { ...s.typeCounters, [id]: (s.typeCounters[id] || 0) + 1 } })),
+  decrementType: (id) =>
+    set((s) => ({
+      typeCounters: {
+        ...s.typeCounters,
+        [id]: Math.max(0, (s.typeCounters[id] || 0) - 1),
+      },
+    })),
+  resetCounters: () => set({ typeCounters: makeCounters() }),
+  totalSelected: () => Object.values(get().typeCounters).reduce((a, b) => a + b, 0),
+  selectedTypesList: () => {
+    const s = get().typeCounters;
+    return Object.entries(s).flatMap(([k, v]) => Array(v).fill(k));
+  },
+  setPromptEditEnabled: (e) => set({ promptEditEnabled: e }),
+  setCustomPrompts: (p) => set({ customPrompts: p }),
 }));
