@@ -1,8 +1,13 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useRef, useEffect } from "react";
+import { motion, useAnimationControls } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
+
+const DRIFT_A = { duration: 7, repeat: Infinity, ease: "easeInOut" } as const;
+const DRIFT_B = { duration: 9, repeat: Infinity, ease: "easeInOut" } as const;
+
+interface PhraseRect { left: number; top: number; w: number; h: number }
 
 interface GenerateCTAProps {
   onGenerate: () => void;
@@ -10,10 +15,10 @@ interface GenerateCTAProps {
 
 export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
   const { credits, isGenerating, totalSelected, promptEditEnabled, uploadedImages } = usePortraitStore();
-  const phrase1Ref = useRef<HTMLSpanElement>(null);
-  const phrase2Ref = useRef<HTMLSpanElement>(null);
-  const containerRef = useRef<HTMLParagraphElement>(null);
-  const [glowPos, setGlowPos] = useState({ x: 0, y: 0, w: 0, h: 0 });
+  const p1 = useRef<HTMLSpanElement>(null);
+  const p2 = useRef<HTMLSpanElement>(null);
+  const box = useRef<HTMLParagraphElement>(null);
+  const glow = useAnimationControls();
 
   const total = totalSelected();
   const creditCost = total + (promptEditEnabled ? 2 : 0);
@@ -21,42 +26,67 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
   const hasTypes = total >= 1;
   const missingRefs = 2 - uploadedImages.length;
 
-  let disabled = false;
-  let reason = "";
+  let disabled = false, reason = "";
   if (!hasRefs) { disabled = true; reason = `${missingRefs} more reference image${missingRefs !== 1 ? "s" : ""} needed`; }
-  else if (!hasTypes) { disabled = true; reason = "Select portrait types from the panel"; }
+  else if (!hasTypes) { disabled = true; reason = "Choose portrait types from the panel"; }
   else if (credits < creditCost) { disabled = true; reason = "Insufficient credits"; }
 
-  const hasRunning = isGenerating || usePortraitStore.getState().portraits.some((p) => p.status !== "pending");
-  const idle = !hasRunning && !isGenerating;
+  const busy = isGenerating || usePortraitStore.getState().portraits.some((p) => p.status !== "pending");
+  const active = !busy && !isGenerating;
+  const phrase = !hasRefs ? 0 : !hasTypes ? 1 : -1;
 
-  // Determine glowing phrase: 0 = refs, 1 = types, -1 = done
-  const glowPhrase = !hasRefs ? 0 : !hasTypes ? 1 : -1;
+  // Measure a phrase rect relative to the container
+  const rect = (el: HTMLSpanElement | null, parent: HTMLElement): PhraseRect => {
+    if (!el) return { left: 0, top: 0, w: 200, h: 40 };
+    const r = el.getBoundingClientRect();
+    const p = parent.getBoundingClientRect();
+    return { left: r.left - p.left, top: r.top - p.top, w: r.width, h: r.height };
+  };
 
-  // Measure phrase positions for the moving glow
-  const measure = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (glowPhrase === 0 && phrase1Ref.current) {
-      const r = phrase1Ref.current.getBoundingClientRect();
-      const cr = container.getBoundingClientRect();
-      setGlowPos({ x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height });
-    } else if (glowPhrase === 1 && phrase2Ref.current) {
-      const r = phrase2Ref.current.getBoundingClientRect();
-      const cr = container.getBoundingClientRect();
-      setGlowPos({ x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height });
-    }
-  }, [glowPhrase]);
-
+  // Animate glow position + start drift when phrase changes
   useEffect(() => {
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [measure]);
+    const parent = box.current;
+    if (!parent || phrase < 0) {
+      glow.start({ opacity: 0, scale: 0.4, transition: { duration: 1 } });
+      return;
+    }
+    const pos = phrase === 0 ? rect(p1.current, parent) : rect(p2.current, parent);
 
-  // Re-measure shortly after mount to get accurate layout
-  useEffect(() => { const t = setTimeout(measure, 100); return () => clearTimeout(t); }, [measure, hasRefs, hasTypes]);
+    // Step 1: move glow to the phrase
+    glow.start({
+      left: pos.left - 50, top: pos.top - 40,
+      width: pos.w + 100, height: pos.h + 80,
+      opacity: 0.95, scale: 1,
+      transition: { duration: 0.9, ease: "easeInOut" },
+    });
+
+    // Step 2: begin irregular smoke drift
+    const drift = async () => {
+      await glow.start({
+        x: [0, 18, -12, 24, -16, 6, -8, 0],
+        y: [0, -14, 10, -8, 18, -6, 12, 0],
+        scale: [1, 1.1, 0.94, 1.07, 0.96, 1.05, 0.98, 1],
+        opacity: [0.95, 1, 0.85, 0.95, 0.8, 0.9, 0.85, 0.95],
+        transition: { ...DRIFT_A },
+      });
+    };
+    drift();
+  }, [phrase, glow]);
+
+  // Re-measure on resize
+  useEffect(() => {
+    const onResize = () => {
+      const parent = box.current;
+      if (!parent || phrase < 0) return;
+      const pos = phrase === 0 ? rect(p1.current, parent) : rect(p2.current, parent);
+      glow.set({
+        left: pos.left - 50, top: pos.top - 40,
+        width: pos.w + 100, height: pos.h + 80,
+      });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [phrase, glow]);
 
   return (
     <motion.div
@@ -65,8 +95,7 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="flex flex-col items-center gap-6 w-full"
     >
-      {/* Center text */}
-      {idle && (
+      {active && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -75,32 +104,43 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
         >
           <p className="text-[10px] tracking-[0.35em] text-[rgba(200,185,154,0.3)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>✦ Your Series Awaits ✦</p>
 
-          <p ref={containerRef} className="relative text-2xl md:text-3xl leading-snug max-w-lg mx-auto text-[rgba(240,237,232,0.5)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400 }}>
-            {/* Moving gas cloud */}
+          <p ref={box} className="relative text-2xl md:text-3xl leading-snug max-w-lg mx-auto text-[rgba(240,237,232,0.45)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400 }}>
+            {/* Main smoke orb */}
             <motion.div
-              animate={{
-                left: glowPos.x,
-                top: glowPos.y,
-                width: glowPos.w + 60,
-                height: glowPos.h + 40,
-                opacity: glowPhrase >= 0 ? 1 : 0,
-                scale: glowPhrase >= 0 ? 1 : 0.7,
-              }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
+              animate={glow}
               className="absolute pointer-events-none z-0"
               style={{
-                marginLeft: -30,
-                marginTop: -20,
-                background: `radial-gradient(ellipse at center, rgba(200,185,154,0.4) 0%, rgba(200,185,154,0.15) 40%, transparent 70%)`,
-                filter: "blur(50px)",
+                background: `radial-gradient(ellipse at center, rgba(200,185,154,0.55) 0%, rgba(200,185,154,0.2) 35%, transparent 70%)`,
+                filter: "blur(70px) saturate(1.5)",
+                willChange: "transform, opacity",
+              }}
+            />
+            {/* Secondary warm orb */}
+            <motion.div
+              animate={
+                phrase >= 0
+                  ? {
+                      x: [0, -20, 14, -18, 10, -8, 0],
+                      y: [0, 16, -12, 10, -8, 14, 0],
+                      opacity: [0.45, 0.65, 0.4, 0.6, 0.35, 0.5, 0.45],
+                    }
+                  : { opacity: 0 }
+              }
+              transition={{ ...DRIFT_B }}
+              className="absolute pointer-events-none z-0"
+              style={{
+                background: `radial-gradient(ellipse at center, rgba(255,210,160,0.25) 0%, transparent 65%)`,
+                filter: "blur(80px)",
+                top: -30, left: -30, width: "120%", height: "140%",
               }}
             />
 
+            {/* Text — all uniform */}
             <span className="relative z-10">
-              <span ref={phrase1Ref}>Upload or shoot your reference images</span>
-              <span className="text-[rgba(240,237,232,0.15)]">, </span>
-              <span ref={phrase2Ref}>select portrait styles from the panel</span>
-              <span className="text-[rgba(240,237,232,0.15)]">, and bring your vision to life.</span>
+              <span ref={p1}>Upload or shoot your reference images</span>
+              <span>, </span>
+              <span ref={p2}>select portrait styles from the panel</span>
+              <span>, and bring your vision to life.</span>
             </span>
           </p>
         </motion.div>
