@@ -105,21 +105,32 @@ export async function POST(request: Request) {
         const output = await replicate.run("openai/gpt-image-2", {
           input: {
             prompt: effectivePrompt,
-            image: refUrls,
+            image: refUrls[0],
             size: "1024x1024",
           },
         });
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Replicate OK ${brief.id}`, { elapsed: `${elapsed}ms` });
+        apiLog(`[${reqId}] Replicate done ${brief.id}`, { elapsed: `${elapsed}ms`, outputType: typeof output, outputStr: JSON.stringify(output).slice(0, 300) });
 
-        // output may be array of URLs or single URL
+        // Parse the output - Replicate image models return varying formats
         let imageUrl: string;
         if (Array.isArray(output)) {
-          imageUrl = output[0] as string;
-        } else if (typeof output === "object" && output !== null && "url" in output) {
-          imageUrl = (output as unknown as { url: string }).url;
+          const first = output[0];
+          if (typeof first === "string") {
+            imageUrl = first;
+          } else if (typeof first === "object" && first !== null) {
+            const obj = first as Record<string, unknown>;
+            imageUrl = (obj.url || obj.image_url || obj.output || "") as string;
+          } else {
+            throw new Error(`Unexpected array element: ${JSON.stringify(first).slice(0, 100)}`);
+          }
+        } else if (typeof output === "string") {
+          imageUrl = output;
+        } else if (typeof output === "object" && output !== null) {
+          const obj = output as Record<string, unknown>;
+          imageUrl = (obj.url || obj.image_url || obj.output || "") as string;
         } else {
-          imageUrl = output as unknown as string;
+          throw new Error(`Unexpected output: ${JSON.stringify(output).slice(0, 200)}`);
         }
 
         if (!imageUrl || typeof imageUrl !== "string") {
