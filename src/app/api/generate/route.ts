@@ -59,44 +59,31 @@ export async function POST(request: Request) {
     }
     apiLog(`[${reqId}] Briefs`, { count: briefs.length, names: briefs.map((b) => b.id) });
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { credits: user.credits - creditCost },
-    });
-    apiLog(`[${reqId}] Deducted`, { cost: creditCost, remaining: user.credits - creditCost });
-
-    const portraitSession = await prisma.portraitSessionRecord.create({
-      data: { userId: user.id, images: JSON.stringify(images), portraits: JSON.stringify([]) },
-    });
-
-    // Extract raw base64 from data URLs
-    const refBase64 = images.map((img: string) => img.split(",")[1] || img);
-    apiLog(`[${reqId}] Refs`, { count: refBase64.length });
+    // Format reference images as data URLs (sdK expects image_url, not image_base64)
+    // Cap at 3 for face consistency
+    const refImages = images.slice(0, 3).map((img: string) => ({
+      type: "input_image" as const,
+      image_url: img, // already a full data:image/jpeg;base64,... URL
+    }));
 
     // Generate all portraits in parallel
     const results = await Promise.allSettled(
-      briefs.map(async (brief, idx) => {
+      briefs.map(async (brief) => {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
         const start = Date.now();
 
         const resp = await (openai.responses as any).create({
           model: "gpt-image-2",
-          input: [
-            {
-              role: "user",
-              content: [
-                { type: "input_text", text: effectivePrompt },
-                ...refBase64.map((img: string) => ({
-                  type: "input_image",
-                  image_base64: img,
-                })),
-              ],
-            },
-          ],
+          input: [{
+            role: "user",
+            content: [
+              { type: "input_text", text: effectivePrompt },
+              ...refImages,
+            ],
+          }],
         });
 
-        const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] OpenAI ${brief.id}`, { elapsed: `${elapsed}ms` });
+        apiLog(`[${reqId}] OpenAI ${brief.id}`, { elapsed: `${Date.now() - start}ms` });
 
         const outputImage = (resp.output || [])
           .flatMap((o: any) => o.content || [])
@@ -134,15 +121,30 @@ export async function POST(request: Request) {
     const okCount = generatedPortraits.filter((p) => p.status === "completed").length;
     apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok: okCount });
 
-    await prisma.portraitSessionRecord.update({
-      where: { id: portraitSession.id },
-      data: { portraits: JSON.stringify(generatedPortraits) },
+    // Deduct credits ONLY after successful generation
+    // If every portrait failed, refund by not deducting
+    if (okCount > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { credits: { decrement: creditCost } },
+      });
+      apiLog(`[${reqId}] Deducted`, { cost: creditCost });
+    } else {
+      apiLog(`[${reqId}] All failed — no deduction`);
+    }
+
+    const portraitSession = await prisma.portraitSessionRecord.create({
+      data: {
+        userId: user.id,
+        images: JSON.stringify(images.map((i: string) => i.slice(0, 50))),
+        portraits: JSON.stringify(generatedPortraits),
+      },
     });
 
     return NextResponse.json({
       sessionId: portraitSession.id,
       portraits: generatedPortraits,
-      creditsRemaining: user.credits - creditCost,
+      creditsRemaining: okCount > 0 ? user.credits - creditCost : user.credits,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Generation failed";
