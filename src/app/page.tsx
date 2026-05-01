@@ -12,7 +12,7 @@ import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
 import Workbench from "@/components/Workbench";
 import { usePortraitStore } from "@/lib/store";
-import { log, error as logError, apiLog } from "@/lib/logger";
+import { apiLog } from "@/lib/logger";
 
 function fileToBase64(file: File, timeout = 15000): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -24,40 +24,28 @@ function fileToBase64(file: File, timeout = 15000): Promise<string> {
   });
 }
 
-// Basic image quality check — warns if photos may be too dark
 async function checkImageQuality(file: File): Promise<{ ok: boolean; warning?: string }> {
   try {
     const bmp = await createImageBitmap(file);
-    const w = Math.min(bmp.width, 200);
-    const h = Math.min(bmp.height, 200);
+    const w = Math.min(bmp.width, 200), h = Math.min(bmp.height, 200);
     const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d")!;
     ctx.drawImage(bmp, 0, 0, w, h);
     bmp.close();
     const data = ctx.getImageData(0, 0, w, h).data;
     let sum = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    }
+    for (let i = 0; i < data.length; i += 4) sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     const avg = sum / (data.length / 4);
     if (avg < 40) return { ok: true, warning: "One of your photos appears very dark. For best results, use well-lit, sharp reference images." };
     if (avg < 70) return { ok: true, warning: "One of your photos seems a bit dark. Brighter lighting may improve likeness." };
     return { ok: true };
-  } catch {
-    return { ok: true };
-  }
+  } catch { return { ok: true }; }
 }
 
 export default function Home() {
   const { data: session, status } = useSession();
-  const {
-    credits, setCredits, setShowBuyCredits, showBuyCredits,
-    showShareCard, isFirstRun, completeFirstRun,
-    uploadedImages, updatePortrait, setSessionId, setShowShareCard,
-    selectedTypesList, promptEditEnabled, customPrompts, totalSelected,
-  } = usePortraitStore();
+  const { credits, setCredits, setShowBuyCredits, showBuyCredits, isFirstRun, completeFirstRun, uploadedImages, updateWorkbenchPortrait, setSessionId, resetWorkbench, resetCounters, totalSelected, promptEditEnabled, customPrompts } = usePortraitStore();
   const [showConfetti, setShowConfetti] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
@@ -65,19 +53,9 @@ export default function Home() {
   useEffect(() => { const seen = sessionStorage.getItem("coverphoto_splash"); if (seen) setSplashDone(true); }, []);
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/credits")
-        .then((r) => r.json())
-        .then((d) => { if (d.credits !== undefined) setCredits(d.credits); })
-        .catch(() => {});
-      // Load current session
-      fetch("/api/session/current")
-        .then((r) => r.json())
-        .then((d) => { if (d.portraits) usePortraitStore.getState().loadSession(d); })
-        .catch(() => {});
-      // Request notification permission on first use
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-      }
+      fetch("/api/credits").then((r) => r.json()).then((d) => { if (d.credits !== undefined) setCredits(d.credits); }).catch(() => {});
+      fetch("/api/session/current").then((r) => r.json()).then((d) => { if (d.portraits) usePortraitStore.getState().loadSession(d); }).catch(() => {});
+      if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     }
   }, [status, setCredits]);
 
@@ -90,26 +68,22 @@ export default function Home() {
     const creditCost = total + (promptEditEnabled ? 2 : 0);
     if (credits < creditCost) { setShowBuyCredits(true); return; }
     if (!session) { signIn("google"); return; }
-
-    // Quality check
     for (const img of uploadedImages) {
       const q = await checkImageQuality(img.file);
       if (q.warning) { toast(q.warning, { className: "toast-custom", icon: "◎", duration: 5000 }); break; }
     }
 
     setGenerating(true);
-    // Build ordered types list and create placeholders
     const allTypes = [
       ...Object.entries(usePortraitStore.getState().typeCounters).flatMap(([k, v]) => Array(v).fill(k)),
       ...Object.entries(usePortraitStore.getState().specialCounters).flatMap(([k, v]) => Array(v).fill(k)),
     ];
-    usePortraitStore.getState().generatePlaceholders(allTypes);
+    usePortraitStore.getState().addToWorkbench(allTypes);
 
     try {
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
       const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           images: imagesBase64,
           typeCounters: usePortraitStore.getState().typeCounters,
@@ -120,70 +94,31 @@ export default function Home() {
       });
       if (!res.ok) { const err = await res.json().catch(() => ({ error: "Unknown" })); if (res.status === 402) { setShowBuyCredits(true); return; } throw new Error(err.error || `Generation failed (${res.status})`); }
       const data = await res.json();
-      data.portraits?.forEach((p: any) => updatePortrait(p.id, { url: p.url, status: p.status, error: p.error }));
+      data.portraits?.forEach((p: any) => updateWorkbenchPortrait(p.id, { url: p.url, status: p.status, error: p.error }));
       if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
       setSessionId(data.sessionId || null);
       if (isFirstRun) { setShowConfetti(true); completeFirstRun(); setTimeout(() => setShowConfetti(false), 3000); }
-      const errors = data.portraits?.filter((p: any) => p.status === "error") || [];
       const okCount = data.portraits?.filter((p: any) => p.status === "completed").length || 0;
       if (okCount > 0 && "Notification" in window && Notification.permission === "granted") {
         new Notification("CoverPhoto", { body: `${okCount} portrait${okCount > 1 ? "s" : ""} ready!`, icon: "/logo.png" });
       }
-      if (errors.length > 0) { toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed`, { className: "toast-custom", icon: "⚠", duration: 6000 }); }
-      else { setShowShareCard(true); }
-      // Reset all counters after generation
-      usePortraitStore.getState().resetCounters();
+      const errors = data.portraits?.filter((p: any) => p.status === "error") || [];
+      if (errors.length > 0) toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed`, { className: "toast-custom", icon: "⚠", duration: 6000 });
+      // Reset counters after generation
+      resetCounters();
     } catch (err: any) {
       toast(err.message || "Generation failed.", { className: "toast-custom", icon: "⚠" });
-      usePortraitStore.getState().resetPortraits();
+      resetWorkbench();
     } finally { setGenerating(false); }
-  }, [uploadedImages, credits, session, isFirstRun, promptEditEnabled, customPrompts, totalSelected, selectedTypesList, updatePortrait, setCredits, setSessionId, setShowBuyCredits, setShowShareCard, completeFirstRun]);
+  }, [uploadedImages, credits, session, isFirstRun, promptEditEnabled, customPrompts, totalSelected, updateWorkbenchPortrait, setCredits, setSessionId, setShowBuyCredits, resetCounters, resetWorkbench]);
 
-  // Generate a single pending portrait
-  const handleGeneratePending = useCallback(async (style: string) => {
-    if (uploadedImages.length < 2) { toast("Upload at least 2 reference images", { className: "toast-custom", icon: "◎" }); return; }
-    if (credits < 1) { setShowBuyCredits(true); return; }
-    if (!session) { signIn("google"); return; }
-    setGenerating(true);
-    // Don't call startGeneration — just keep existing portraits
-    try {
-      const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
-      const res = await fetch("/api/generate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images: imagesBase64, typeCounters: { [style]: 1 }, specialConfigs: {}, specialFields: {} }),
-      });
-      if (!res.ok) throw new Error("Generation failed");
-      const data = await res.json();
-      // Map response to first pending portrait with this style
-      const state = usePortraitStore.getState();
-      const target = state.portraits.find((p) => p.style === style && p.status === "pending");
-      if (target && data.portraits?.[0]) {
-        updatePortrait(target.id, { url: data.portraits[0].url, status: data.portraits[0].status, error: data.portraits[0].error });
-      }
-      if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
-    } catch {
-      toast("Generation failed.", { className: "toast-custom", icon: "⚠" });
-    } finally { setGenerating(false); }
-  }, [uploadedImages, credits, session, updatePortrait, setCredits, setShowBuyCredits]);
-
-  // Send browser notification on portrait completion
-  useEffect(() => {
-    const completed = usePortraitStore.getState().portraits.filter((p) => p.status === "completed").length;
-    if (completed > 0 && "Notification" in window && Notification.permission === "granted") {
-      new Notification("CoverPhoto", { body: `${completed} portrait${completed > 1 ? "s" : ""} ready!`, icon: "/logo.png" });
-    }
-  });
-
-  // Retry a single portrait — find by id, regenerate via API, update in place
+  // Retry from library/workbench
   const handleRetryOne = useCallback(async (id: string, style: string) => {
     if (uploadedImages.length < 2) { toast("Upload at least 2 reference images", { className: "toast-custom", icon: "◎" }); return; }
     if (credits < 1) { setShowBuyCredits(true); return; }
     if (!session) { signIn("google"); return; }
-
-    // Mark this specific portrait as generating (don't wipe others)
-    usePortraitStore.getState().redoPortrait(id);
     setGenerating(true);
-
+    usePortraitStore.getState().addToWorkbench([style]);
     try {
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
       const res = await fetch("/api/generate", {
@@ -192,19 +127,13 @@ export default function Home() {
       });
       if (!res.ok) throw new Error("Retry failed");
       const data = await res.json();
-      // Update exactly this portrait with the result
-      if (data.portraits?.[0]) {
-        updatePortrait(id, { url: data.portraits[0].url, status: data.portraits[0].status, error: data.portraits[0].error });
-      }
+      const wb = usePortraitStore.getState().workbenchPortraits;
+      const target = wb.find((p) => p.style === style && p.status === "generating");
+      if (target && data.portraits?.[0]) updateWorkbenchPortrait(target.id, { url: data.portraits[0].url, status: data.portraits[0].status, error: data.portraits[0].error });
       if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
-      if (data.portraits?.some((p: any) => p.status === "completed") && "Notification" in window && Notification.permission === "granted") {
-        new Notification("CoverPhoto", { body: "Portrait regenerated!", icon: "/logo.png" });
-      }
-    } catch {
-      toast("Retry failed.", { className: "toast-custom", icon: "⚠" });
-      usePortraitStore.getState().resetPortraits();
-    } finally { setGenerating(false); }
-  }, [uploadedImages, credits, session, updatePortrait, setCredits, setShowBuyCredits]);
+    } catch { toast("Retry failed.", { className: "toast-custom", icon: "⚠" }); resetWorkbench(); }
+    finally { setGenerating(false); }
+  }, [uploadedImages, credits, session, updateWorkbenchPortrait, setCredits, setShowBuyCredits]);
 
   return (
     <>
@@ -214,8 +143,6 @@ export default function Home() {
         {splashDone && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="h-screen flex flex-col overflow-hidden">
             <StudioHeader onCreditsClick={() => setShowBuyCredits(true)} credits={credits} user={session?.user ?? null} isGenerating={generating} />
-
-            {/* LANDING */}
             {status === "unauthenticated" && (
               <main className="flex-1 flex flex-col items-center justify-center gap-6 md:gap-8 px-4 min-h-0">
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center space-y-2 pt-1">
@@ -235,17 +162,10 @@ export default function Home() {
                 </motion.div>
               </main>
             )}
-
-            {/* WORKBENCH */}
-            {status === "authenticated" && <Workbench
-              onGenerate={handleGenerate}
-              onGeneratePending={handleGeneratePending}
-              onRetry={handleRetryOne}
+            {status === "authenticated" && <Workbench onGenerate={handleGenerate} onRetry={handleRetryOne}
               canGenerate={(() => {
                 const t = totalSelected();
-                const r = uploadedImages.length >= 2;
-                const c = credits >= t + (promptEditEnabled ? 2 : 0);
-                return t >= 1 && r && c && !generating;
+                return t >= 1 && uploadedImages.length >= 2 && credits >= t + (promptEditEnabled ? 2 : 0) && !generating;
               })()}
               genReason={(() => {
                 const t = totalSelected();
@@ -256,10 +176,7 @@ export default function Home() {
                 return "";
               })()}
             />}
-
-            {/* Loading */}
             {status === "loading" && <main className="flex-1 flex items-center justify-center"><div className="shimmer w-8 h-8 rounded-full" /></main>}
-
             <BuyCreditsModal open={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
             {showConfetti && <ConfettiBurst />}
           </motion.div>

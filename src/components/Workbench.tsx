@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 import RefPanel from "./RefPanel";
 import BuilderPanel from "./BuilderPanel";
-import PortraitGallery from "./PortraitGallery";
-import ShareCard from "./ShareCard";
+import PortraitCarousel from "./PortraitCarousel";
 import WebcamModal from "./WebcamModal";
 import TermsModal from "./TermsModal";
 import OrderMailModal from "./OrderMailModal";
@@ -16,14 +15,13 @@ const RIGHT_PANEL_W = 500;
 
 interface WorkbenchProps {
   onGenerate: () => void;
-  onGeneratePending?: (style: string) => void;
   onRetry?: (id: string, style: string) => void;
   canGenerate: boolean;
   genReason: string;
 }
 
-export default function Workbench({ onGenerate, onGeneratePending, onRetry, canGenerate, genReason }: WorkbenchProps) {
-  const { leftPanelOpen, rightPanelOpen, leftPanelPinned, rightPanelPinned, setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel, showShareCard, resetPortraits, portraits, portraitIdx } = usePortraitStore();
+export default function Workbench({ onGenerate, onRetry, canGenerate, genReason }: WorkbenchProps) {
+  const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel, workbenchPortraits, resetWorkbench, clearUploadedImages } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
@@ -46,7 +44,7 @@ export default function Workbench({ onGenerate, onGeneratePending, onRetry, canG
     return () => window.removeEventListener("mousemove", handler);
   }, [leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, cancelLeft, cancelRight]);
 
-  const hasCompleted = portraits.some((p) => p.status === "completed");
+  const wbEmpty = workbenchPortraits.length === 0;
 
   return (
     <div className="flex-1 flex overflow-hidden relative min-h-0">
@@ -66,35 +64,24 @@ export default function Workbench({ onGenerate, onGeneratePending, onRetry, canG
         )}</AnimatePresence>
       </div>
 
-      {/* CENTER — only carousel */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 min-h-0 overflow-y-auto">
-        <div className="flex flex-col items-center justify-center gap-3 w-full max-w-sm">
-          <motion.p initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</motion.p>
-
-          {portraits.length === 0 ? (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-              className="text-sm text-[rgba(240,237,232,0.2)] italic text-center py-12" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Select portrait types in the panel to begin.
-            </motion.p>
-          ) : (
-            <PortraitGallery onRetry={onRetry} onGeneratePending={onGeneratePending} />
-          )}
-
-          {hasCompleted && (
-            <div className="flex gap-3 mt-2">
-              <button onClick={() => setShowOrder(true)}
-                className="text-[9px] px-3 py-1.5 rounded-lg border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-all uppercase tracking-wider"
-                style={{ fontFamily: "'DM Mono', monospace" }}>📬 Order by Mail</button>
-              <button onClick={() => { resetPortraits(); usePortraitStore.getState().clearUploadedImages(); }}
-                className="text-[9px] px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/50 hover:text-red-400/80 transition-all uppercase tracking-wider"
-                style={{ fontFamily: "'DM Mono', monospace" }}>🗑 Clear all</button>
-            </div>
-          )}
-
-          <button onClick={() => setShowTerms(true)}
-            className="text-[8px] tracking-[0.3em] text-[rgba(240,237,232,0.1)] hover:text-[rgba(240,237,232,0.3)] transition-colors uppercase py-2"
-            style={{ fontFamily: "'DM Mono', monospace" }}>Terms & Privacy</button>
+      {/* CENTER — dual carousel */}
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</p>
+          <div className="flex gap-2">
+            <button onClick={() => setShowOrder(true)}
+              className="text-[8px] px-2 py-1 rounded border border-white/10 text-[rgba(240,237,232,0.25)] hover:text-white/60 transition-all"
+              style={{ fontFamily: "'DM Mono', monospace" }}>📬 Order</button>
+            <button onClick={() => { resetWorkbench(); clearUploadedImages(); }}
+              className="text-[8px] px-2 py-1 rounded border border-red-500/15 text-red-400/40 hover:text-red-400/70 transition-all"
+              style={{ fontFamily: "'DM Mono', monospace" }}>🗑 Clear all</button>
+            <button onClick={() => setShowTerms(true)}
+              className="text-[8px] px-2 py-1 rounded border border-white/10 text-[rgba(240,237,232,0.25)] hover:text-white/60 transition-all"
+              style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
+          </div>
+        </div>
+        <div className="flex-1 min-h-0">
+          <PortraitCarousel onRetry={onRetry} />
         </div>
       </main>
 
@@ -109,7 +96,7 @@ export default function Workbench({ onGenerate, onGeneratePending, onRetry, canG
         <AnimatePresence>{rightPanelOpen && (
           <motion.div initial={{ x: RIGHT_PANEL_W }} animate={{ x: 0 }} exit={{ x: RIGHT_PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
             className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4" style={{ width: RIGHT_PANEL_W, minWidth: RIGHT_PANEL_W }}>
-            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
+            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate && wbEmpty} reason={wbEmpty ? genReason : "Dispatch workbench items first"} />
           </motion.div>
         )}</AnimatePresence>
       </div>

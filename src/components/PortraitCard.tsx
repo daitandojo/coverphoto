@@ -87,18 +87,14 @@ interface PortraitCardProps {
 }
 
 export default function PortraitCard({ portrait, index, large, onRetry }: PortraitCardProps) {
-  const { redoPortrait, credits } = usePortraitStore();
+  const { credits } = usePortraitStore();
   const [showOverlay, setShowOverlay] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [materializing, setMaterializing] = useState(true);
 
   const handleRetry = useCallback(() => {
-    if (onRetry) {
-      onRetry(portrait.id, portrait.style);
-    } else {
-      redoPortrait(portrait.id);
-    }
-  }, [onRetry, portrait.id, portrait.style, redoPortrait]);
+    if (onRetry) onRetry(portrait.id, portrait.style);
+  }, [onRetry, portrait.id, portrait.style]);
 
   useEffect(() => {
     if (portrait.status === "completed" && portrait.url) {
@@ -258,7 +254,7 @@ export default function PortraitCard({ portrait, index, large, onRetry }: Portra
             x={contextMenu.x}
             y={contextMenu.y}
             onSave={handleSave}
-            onRedo={() => { redoPortrait(portrait.id); setContextMenu(null); }}
+            onRedo={() => { handleRetry(); setContextMenu(null); }}
             onCopy={handleCopy}
             onClose={() => setContextMenu(null)}
           />

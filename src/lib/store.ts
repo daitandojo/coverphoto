@@ -11,12 +11,12 @@ interface PortraitStore {
   credits: number;
   isFirstRun: boolean;
   uploadedImages: UploadedImage[];
-  portraits: PortraitImage[];
+  libraryPortraits: PortraitImage[];
+  workbenchPortraits: PortraitImage[];
   isGenerating: boolean;
   showShareCard: boolean;
   sessionId: string | null;
   showBuyCredits: boolean;
-  portraitIdx: number;
 
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
@@ -29,20 +29,25 @@ interface PortraitStore {
   specialCounters: TypeCounter;
   specialFields: Record<string, Record<string, string>>;
 
+  libIdx: number;
+  wbIdx: number;
+
   setCredits: (c: number) => void;
   completeFirstRun: () => void;
   addUploadedImage: (img: UploadedImage) => void;
   removeUploadedImage: (id: string) => void;
   clearUploadedImages: () => void;
-  generatePlaceholders: (types: string[]) => void;
-  updatePortrait: (id: string, u: Partial<PortraitImage>) => void;
-  removePortrait: (id: string) => void;
+  addToWorkbench: (types: string[]) => void;
+  updateWorkbenchPortrait: (id: string, u: Partial<PortraitImage>) => void;
+  moveToLibrary: (id: string) => void;
+  dismissFromWorkbench: (id: string) => void;
+  deleteFromLibrary: (id: string) => void;
   setShowShareCard: (s: boolean) => void;
   setSessionId: (s: string | null) => void;
-  resetPortraits: () => void;
-  redoPortrait: (id: string) => void;
+  resetWorkbench: () => void;
   setShowBuyCredits: (s: boolean) => void;
-  setPortraitIdx: (i: number) => void;
+  setLibIdx: (i: number) => void;
+  setWbIdx: (i: number) => void;
 
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
@@ -56,7 +61,6 @@ interface PortraitStore {
   resetCounters: () => void;
   selectOneOfEach: () => void;
   totalSelected: () => number;
-  selectedTypesList: () => string[];
   setPromptEditEnabled: (e: boolean) => void;
   setCustomPrompts: (p: Record<string, string>) => void;
 
@@ -73,18 +77,20 @@ function makeTC(): TypeCounter {
   return c;
 }
 
-let globalIdCounter = Date.now();
+let idGen = Date.now();
 
 export const usePortraitStore = create<PortraitStore>((set, get) => ({
   credits: 0,
   isFirstRun: true,
   uploadedImages: [],
-  portraits: [],
+  libraryPortraits: [],
+  workbenchPortraits: [],
   isGenerating: false,
   showShareCard: false,
   sessionId: null,
   showBuyCredits: false,
-  portraitIdx: 0,
+  libIdx: 0,
+  wbIdx: 0,
 
   leftPanelOpen: true,
   rightPanelOpen: true,
@@ -99,33 +105,48 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
 
   setCredits: (c) => set({ credits: c }),
   completeFirstRun: () => set({ isFirstRun: false }),
-
   addUploadedImage: (img) => set((s) => ({ uploadedImages: s.uploadedImages.length < 3 ? [...s.uploadedImages, img] : s.uploadedImages })),
   removeUploadedImage: (id) => set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })),
   clearUploadedImages: () => set({ uploadedImages: [] }),
 
-  generatePlaceholders: (types) => {
+  addToWorkbench: (types) => {
     const placeholders: PortraitImage[] = types.map((t) => ({
-      id: `portrait-${globalIdCounter++}`,
+      id: `portrait-${idGen++}`,
       url: "",
-      status: "generating" as const,
+      status: "generating",
       style: t as any,
     }));
-    set((s) => ({
-      isGenerating: true,
-      portraits: [...s.portraits, ...placeholders],
-    }));
+    set((s) => ({ isGenerating: true, workbenchPortraits: [...s.workbenchPortraits, ...placeholders] }));
   },
 
-  updatePortrait: (id, u) => set((s) => ({ portraits: s.portraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
-  removePortrait: (id) => set((s) => ({ portraits: s.portraits.filter((p) => p.id !== id) })),
+  updateWorkbenchPortrait: (id, u) => set((s) => ({ workbenchPortraits: s.workbenchPortraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
+
+  moveToLibrary: (id) => set((s) => {
+    const found = s.workbenchPortraits.find((p) => p.id === id);
+    if (!found) return s;
+    return {
+      workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id),
+      libraryPortraits: [...s.libraryPortraits, { ...found, status: "completed" }],
+      wbIdx: Math.max(0, s.wbIdx - 1),
+    };
+  }),
+
+  dismissFromWorkbench: (id) => set((s) => {
+    const idx = s.workbenchPortraits.findIndex((p) => p.id === id);
+    return { workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), wbIdx: Math.max(0, Math.min(idx, s.wbIdx - 1)) };
+  }),
+
+  deleteFromLibrary: (id) => set((s) => {
+    const idx = s.libraryPortraits.findIndex((p) => p.id === id);
+    return { libraryPortraits: s.libraryPortraits.filter((p) => p.id !== id), libIdx: Math.max(0, Math.min(idx, s.libIdx - 1)) };
+  }),
 
   setShowShareCard: (s) => set({ showShareCard: s }),
   setSessionId: (s) => set({ sessionId: s }),
-  resetPortraits: () => set({ portraits: [], isGenerating: false }),
-  redoPortrait: (id) => set((s) => ({ credits: s.credits - 1, portraits: s.portraits.map((p) => (p.id === id ? { ...p, status: "generating" as const, url: "" } : p)) })),
+  resetWorkbench: () => set({ workbenchPortraits: [], isGenerating: false, wbIdx: 0 }),
   setShowBuyCredits: (s) => set({ showBuyCredits: s }),
-  setPortraitIdx: (i) => set({ portraitIdx: i }),
+  setLibIdx: (i) => set({ libIdx: i }),
+  setWbIdx: (i) => set({ wbIdx: i }),
 
   toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen, leftPanelPinned: !s.leftPanelOpen ? true : s.leftPanelPinned })),
   toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen, rightPanelPinned: !s.rightPanelOpen ? true : s.rightPanelPinned })),
@@ -143,10 +164,8 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     set({ typeCounters: tc });
   },
   totalSelected: () => Object.values(get().typeCounters).reduce((a, b) => a + b, 0) + Object.values(get().specialCounters).reduce((a, b) => a + b, 0),
-  selectedTypesList: () => Object.entries(get().typeCounters).flatMap(([k, v]) => Array(v).fill(k)),
   setPromptEditEnabled: (e) => set({ promptEditEnabled: e }),
   setCustomPrompts: (p) => set({ customPrompts: p }),
-
   incrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: (s.specialCounters[id] || 0) + 1 } })),
   decrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: Math.max(0, (s.specialCounters[id] || 0) - 1) } })),
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
@@ -156,18 +175,9 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
       id: p.id || `restored-${i}`,
       url: p.url || "",
       style: p.style || "executive",
-      status: (p.status === "completed" ? "completed" : p.status === "error" ? "error" : "completed") as any,
+      status: "completed",
       error: p.error,
     }));
-    // Build typeCounters
-    const tc = makeTC();
-    portraits.forEach((p) => { if (tc[p.style] !== undefined) tc[p.style] = (tc[p.style] || 0) + 1; });
-    set({
-      portraits,
-      typeCounters: tc,
-      sessionId: data.sessionId,
-      credits: data.credits,
-      showShareCard: portraits.length > 0 && portraits.every((p) => p.status !== "pending" && p.status !== "generating"),
-    });
+    set({ libraryPortraits: portraits, sessionId: data.sessionId, credits: data.credits });
   },
 }));
