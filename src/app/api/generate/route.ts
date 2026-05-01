@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
-import { getBriefs } from "@/lib/prompts";
+import { getBriefs, randomizePrompt } from "@/lib/prompts";
 import { getSpecialty } from "@/lib/specialties";
 import Replicate from "replicate";
 
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     const briefs = getBriefs(orderedTypes);
     const allBriefs: { id: string; prompt: string }[] = [
-      ...briefs.map((b) => ({ id: b.id, prompt: customPrompts?.[b.id] || b.prompt })),
+      ...briefs.map((b) => ({ id: b.id, prompt: customPrompts?.[b.id] ? customPrompts[b.id] : randomizePrompt(b.id, b.prompt) })),
       ...orderedSpecials.map((s) => {
         const spec = getSpecialty(s.id);
         return { id: s.id, prompt: spec ? spec.generatePrompt(s.config) : `Portrait: ${s.id}` };

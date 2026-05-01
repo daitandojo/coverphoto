@@ -128,9 +128,16 @@ export default function BuilderPanel() {
       {/* Footer */}
       <div className="flex-shrink-0 space-y-2 pt-2 border-t border-white/5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[rgba(240,237,232,0.4)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-            {total} portrait{total !== 1 ? "s" : ""}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[rgba(240,237,232,0.4)]" style={{ fontFamily: "'DM Mono', monospace" }}>
+              {total} portrait{total !== 1 ? "s" : ""}
+            </span>
+            {!Object.values(typeCounters).some((v) => v > 0) && (
+              <button onClick={() => usePortraitStore.getState().selectOneOfEach()}
+                className="text-[9px] px-2 py-0.5 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-colors"
+                style={{ fontFamily: "'DM Mono', monospace" }}>One of Each ✦ (9cr)</button>
+            )}
+          </div>
           <button onClick={() => setPromptEditEnabled(!promptEditEnabled)}
             className={`text-[10px] px-2 py-1 rounded border transition-all uppercase tracking-wider ${promptEditEnabled ? "border-[#C8B99A] text-[#C8B99A]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/70"}`}
             style={{ fontFamily: "'DM Mono', monospace" }}>{promptEditEnabled ? "✦ On" : "✦ Prompts"}

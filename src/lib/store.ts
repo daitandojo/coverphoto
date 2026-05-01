@@ -51,6 +51,7 @@ interface PortraitStore {
   incrementType: (id: string) => void;
   decrementType: (id: string) => void;
   resetCounters: () => void;
+  selectOneOfEach: () => void;
   totalSelected: () => number;
   selectedTypesList: () => string[];
   setPromptEditEnabled: (e: boolean) => void;
@@ -124,6 +125,11 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   incrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: (s.typeCounters[id] || 0) + 1 } })),
   decrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: Math.max(0, (s.typeCounters[id] || 0) - 1) } })),
   resetCounters: () => set({ typeCounters: makeTC(), specialCounters: makeTC(), specialFields: {} }),
+  selectOneOfEach: () => {
+    const tc = makeTC();
+    BRIEFS.forEach((b) => (tc[b.id] = 1));
+    set({ typeCounters: tc });
+  },
   totalSelected: () => Object.values(get().typeCounters).reduce((a, b) => a + b, 0) + Object.values(get().specialCounters).reduce((a, b) => a + b, 0),
   selectedTypesList: () => Object.entries(get().typeCounters).flatMap(([k, v]) => Array(v).fill(k)),
   setPromptEditEnabled: (e) => set({ promptEditEnabled: e }),

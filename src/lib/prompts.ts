@@ -259,3 +259,56 @@ export const TIERS = [
 export type TierId = (typeof TIERS)[number]["id"];
 
 export { BRIEFS };
+
+const VARIANTS = [
+  "Subject looks slightly left. Camera at eye level. Cropped at chest.",
+  "Subject looks slightly right. Camera slightly above. Cropped at waist.",
+  "Subject looks directly at lens. Camera slightly below. Tight crop.",
+  "Subject's head tilted subtly. Camera at three-quarter angle. Full shoulder frame.",
+  "Subject in slight profile. Camera at eye level. Wide shoulders.",
+  "Subject with warm expression. Camera at eye level. Medium crop.",
+  "Subject with composed expression. Camera from the right. Classic framing.",
+  "Subject looking past camera. Camera at chin height. Environmental crop.",
+];
+
+const WARDROBE_PLUS: Record<string, string[]> = {
+  executive: [
+    "Charcoal wool suit, white poplin shirt, no tie",
+    "Navy pinstripe suit, crisp blue shirt, silk tie",
+    "Dark grey suit, light blue shirt, no tie, pocket square",
+    "Black suit, white shirt, slim black tie",
+  ],
+  founder: [
+    "Charcoal merino crewneck, tailored chinos",
+    "Light grey blazer, white tee, dark jeans",
+    "Navy blazer, open-collar white shirt, beige chinos",
+    "Cashmere sweater, unstructured blazer, dark trousers",
+  ],
+  outdoors: [
+    "Open-collar linen shirt, light field jacket",
+    "Canvas shirt, rolled sleeves, khaki vest",
+    "Lightweight sweater, utility jacket",
+    "Chambray shirt, waxed jacket, denim",
+  ],
+};
+
+const DEFAULT_WARDROBE = [
+  "Tailored dark suit, crisp shirt",
+  "Smart blazer, fine-knit sweater",
+  "Classic formal wear, polished",
+  "Elegant attire, refined simplicity",
+];
+
+export function randomizePrompt(id: string, prompt: string): string {
+  const variant = VARIANTS[Math.floor(Math.random() * VARIANTS.length)];
+  const wardrobes = WARDROBE_PLUS[id] || DEFAULT_WARDROBE;
+  const wardrobe = wardrobes[Math.floor(Math.random() * wardrobes.length)];
+
+  // Inject wardrobe variation into the WARDROBE section
+  let result = prompt;
+  if (result.includes("WARDROBE:")) {
+    result = result.replace(/WARDROBE:[^\n]+/i, `WARDROBE: ${wardrobe}.`);
+  }
+
+  return `${result}\n\nFRAMING: ${variant}`;
+}
