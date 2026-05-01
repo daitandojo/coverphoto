@@ -88,7 +88,7 @@ export async function POST(request: Request) {
         const formData = new FormData();
         formData.append("model", "gpt-image-2");
         for (const blob of refBlobs) {
-          formData.append("image", blob, "reference.png");
+          formData.append("image[]", blob, "reference.png");
         }
         formData.append("prompt", effectivePrompt);
         formData.append("n", "1");
