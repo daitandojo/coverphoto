@@ -56,7 +56,7 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
             {uploadedImages.map((img) => (
               <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative group w-full">
-                <div className="w-full aspect-[4/3] rounded-lg overflow-hidden ring-1 ring-white/10">
+                <div className="w-full aspect-[3/2] rounded-lg overflow-hidden ring-1 ring-white/10">
                   <img src={img.preview} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button onClick={() => removeUploadedImage(img.id)}
