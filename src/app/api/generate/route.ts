@@ -23,7 +23,7 @@ async function uploadImage(
       const { url } = await put(
         `references/${email}/${Date.now()}-${index}.jpg`,
         buffer,
-        { access: "private" }
+        { access: "public" }
       );
       return url;
     } catch (e) {
