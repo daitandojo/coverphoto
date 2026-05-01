@@ -79,21 +79,32 @@ export async function POST(request: Request) {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
         const start = Date.now();
 
-        const resp = await (openai.images.generate as any)({
+        const resp = await (openai.responses as any).create({
           model: "gpt-image-2",
-          prompt: effectivePrompt,
-          size: "1024x1024",
-          input_images: refBase64,
-          n: 1,
+          input: [
+            {
+              role: "user",
+              content: [
+                { type: "input_text", text: effectivePrompt },
+                ...refBase64.map((img: string) => ({
+                  type: "input_image",
+                  image_base64: img,
+                })),
+              ],
+            },
+          ],
         });
 
         const elapsed = Date.now() - start;
         apiLog(`[${reqId}] OpenAI ${brief.id}`, { elapsed: `${elapsed}ms` });
 
-        const b64 = resp.data[0]?.b64_json;
-        if (!b64) throw new Error("No image generated");
+        const outputImage = (resp.output || [])
+          .flatMap((o: any) => o.content || [])
+          .find((c: any) => c.type === "output_image");
 
-        const buffer = Buffer.from(b64, "base64");
+        if (!outputImage?.image_base64) throw new Error("No image in response");
+
+        const buffer = Buffer.from(outputImage.image_base64, "base64");
         const watermarked = await applyWatermark(buffer, false);
         const finalB64 = watermarked.toString("base64");
         return { style: brief.id, url: `data:image/jpeg;base64,${finalB64}` };
