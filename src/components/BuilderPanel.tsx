@@ -37,17 +37,17 @@ export default function BuilderPanel() {
                   onClick={() => (active ? decrementType(brief.id) : incrementType(brief.id))}
                 >
                   {active && <><span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" /></>}
-                  <div className="flex items-center justify-between p-2">
-                    <div className="flex-1 min-w-0 mr-2">
-                      <p className="text-sm text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.name}</p>
-                      <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.tagline}</p>
+                  <div className="flex items-center justify-between p-1.5">
+                    <div className="flex-1 min-w-0 mr-1.5">
+                      <p className="text-xs text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.name}</p>
+                      <p className="text-[9px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.tagline}</p>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <motion.button onClick={(e) => { e.stopPropagation(); decrementType(brief.id); }} whileTap={{ scale: 0.85 }}
-                        className={`w-7 h-7 rounded-md border text-xs transition-all ${active ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40" : "border-white/5 text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>−</motion.button>
+                        className={`w-6 h-6 rounded-md border text-xs transition-all ${active ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40" : "border-white/5 text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>−</motion.button>
                       <span className={`w-5 text-center text-sm tabular-nums ${active ? "text-[#F0EDE8]" : "text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
                       <motion.button onClick={(e) => { e.stopPropagation(); incrementType(brief.id); }} whileTap={{ scale: 0.85 }}
-                        className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
+                        className="w-6 h-6 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
                     </div>
                   </div>
                 </motion.div>
@@ -69,18 +69,18 @@ export default function BuilderPanel() {
                   whileHover={{ scale: 1.012 }}
                   className={`relative rounded-lg border transition-all ${active ? "border-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 hover:border-white/25"}`}
                 >
-                  <div className="flex items-center justify-between p-2 cursor-pointer" onClick={() => (active ? decrementSpecial(spec.id) : incrementSpecial(spec.id))}>
+                  <div className="flex items-center justify-between p-1.5 cursor-pointer" onClick={() => (active ? decrementSpecial(spec.id) : incrementSpecial(spec.id))}>
                     {active && <><span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" /></>}
-                    <div className="flex-1 min-w-0 mr-2">
-                      <p className="text-sm text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{spec.name}</p>
-                      <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{spec.tagline} · {spec.cost}cr</p>
+                    <div className="flex-1 min-w-0 mr-1.5">
+                      <p className="text-xs text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{spec.name}</p>
+                      <p className="text-[9px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{spec.tagline} · {spec.cost}cr</p>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <motion.button onClick={(e) => { e.stopPropagation(); decrementSpecial(spec.id); }} whileTap={{ scale: 0.85 }}
-                        className={`w-7 h-7 rounded-md border text-xs transition-all ${active ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40" : "border-white/5 text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>−</motion.button>
+                        className={`w-6 h-6 rounded-md border text-xs transition-all ${active ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40" : "border-white/5 text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>−</motion.button>
                       <span className={`w-5 text-center text-sm tabular-nums ${active ? "text-[#F0EDE8]" : "text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
                       <motion.button onClick={(e) => { e.stopPropagation(); incrementSpecial(spec.id); }} whileTap={{ scale: 0.85 }}
-                        className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
+                        className="w-6 h-6 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
                     </div>
                   </div>
 

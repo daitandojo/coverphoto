@@ -85,7 +85,7 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
       {/* Compact center instruction */}
       {active && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }} className="text-center">
-          <div ref={box} className="relative text-lg md:text-xl leading-snug max-w-md mx-auto text-[rgba(240,237,232,0.45)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
+          <div ref={box} className="relative text-2xl md:text-3xl leading-snug max-w-lg mx-auto text-[rgba(240,237,232,0.45)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic" }}>
             <motion.div animate={glow} className="absolute pointer-events-none z-0"
               style={{ background: `radial-gradient(ellipse at center, rgba(200,185,154,0.25) 0%, transparent 60%)`, filter: "blur(70px)", willChange: "transform, opacity" }} />
             <span className="relative z-10">

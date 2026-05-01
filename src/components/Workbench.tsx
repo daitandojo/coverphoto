@@ -13,7 +13,7 @@ import TermsModal from "./TermsModal";
 import OrderMailModal from "./OrderMailModal";
 
 const LEFT_PANEL_W = 310;
-const RIGHT_PANEL_W = 420;
+const RIGHT_PANEL_W = 500;
 const EDGE_HOVER_MARGIN = 59;
 const AUTO_CLOSE_MS = 8000;
 
