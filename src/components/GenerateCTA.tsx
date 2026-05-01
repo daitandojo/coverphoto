@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 
@@ -9,6 +10,10 @@ interface GenerateCTAProps {
 
 export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
   const { credits, isGenerating, totalSelected, promptEditEnabled, uploadedImages } = usePortraitStore();
+  const phrase1Ref = useRef<HTMLSpanElement>(null);
+  const phrase2Ref = useRef<HTMLSpanElement>(null);
+  const containerRef = useRef<HTMLParagraphElement>(null);
+  const [glowPos, setGlowPos] = useState({ x: 0, y: 0, w: 0, h: 0 });
 
   const total = totalSelected();
   const creditCost = total + (promptEditEnabled ? 2 : 0);
@@ -25,8 +30,33 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
   const hasRunning = isGenerating || usePortraitStore.getState().portraits.some((p) => p.status !== "pending");
   const idle = !hasRunning && !isGenerating;
 
-  // Which phrase hosts the golden glow — animated via motion + layout
-  const glowIdx = !hasRefs ? 0 : !hasTypes ? 1 : -1;
+  // Determine glowing phrase: 0 = refs, 1 = types, -1 = done
+  const glowPhrase = !hasRefs ? 0 : !hasTypes ? 1 : -1;
+
+  // Measure phrase positions for the moving glow
+  const measure = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (glowPhrase === 0 && phrase1Ref.current) {
+      const r = phrase1Ref.current.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      setGlowPos({ x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height });
+    } else if (glowPhrase === 1 && phrase2Ref.current) {
+      const r = phrase2Ref.current.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      setGlowPos({ x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height });
+    }
+  }, [glowPhrase]);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
+  // Re-measure shortly after mount to get accurate layout
+  useEffect(() => { const t = setTimeout(measure, 100); return () => clearTimeout(t); }, [measure, hasRefs, hasTypes]);
 
   return (
     <motion.div
@@ -45,26 +75,33 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
         >
           <p className="text-[10px] tracking-[0.35em] text-[rgba(200,185,154,0.3)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>✦ Your Series Awaits ✦</p>
 
-          <p className="text-2xl md:text-3xl leading-snug max-w-lg relative" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400 }}>
-            {/* Phrase 1 */}
-            <motion.span
-              layout
-              transition={{ duration: 0.7, ease: "easeInOut" }}
-              className={`relative inline ${glowIdx === 0 ? "golden-glow text-[#C8B99A]" : glowIdx === -1 ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.35)]"}`}
-            >
-              Upload or shoot your reference images
-            </motion.span>
-            <span className="text-[rgba(240,237,232,0.2)]">, </span>
+          <p ref={containerRef} className="relative text-2xl md:text-3xl leading-snug max-w-lg mx-auto text-[rgba(240,237,232,0.5)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontWeight: 400 }}>
+            {/* Moving gas cloud */}
+            <motion.div
+              animate={{
+                left: glowPos.x,
+                top: glowPos.y,
+                width: glowPos.w + 60,
+                height: glowPos.h + 40,
+                opacity: glowPhrase >= 0 ? 1 : 0,
+                scale: glowPhrase >= 0 ? 1 : 0.7,
+              }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+              className="absolute pointer-events-none z-0"
+              style={{
+                marginLeft: -30,
+                marginTop: -20,
+                background: `radial-gradient(ellipse at center, rgba(200,185,154,0.4) 0%, rgba(200,185,154,0.15) 40%, transparent 70%)`,
+                filter: "blur(50px)",
+              }}
+            />
 
-            {/* Phrase 2 */}
-            <motion.span
-              layout
-              transition={{ duration: 0.7, ease: "easeInOut" }}
-              className={`relative inline ${glowIdx === 1 ? "golden-glow text-[#C8B99A]" : "text-[rgba(240,237,232,0.35)]"}`}
-            >
-              select portrait styles from the panel
-            </motion.span>
-            <span className="text-[rgba(240,237,232,0.2)]">, and bring your vision to life.</span>
+            <span className="relative z-10">
+              <span ref={phrase1Ref}>Upload or shoot your reference images</span>
+              <span className="text-[rgba(240,237,232,0.15)]">, </span>
+              <span ref={phrase2Ref}>select portrait styles from the panel</span>
+              <span className="text-[rgba(240,237,232,0.15)]">, and bring your vision to life.</span>
+            </span>
           </p>
         </motion.div>
       )}
