@@ -105,40 +105,27 @@ export async function POST(request: Request) {
         const output = await replicate.run("openai/gpt-image-2", {
           input: {
             prompt: effectivePrompt,
-            image: refUrls[0],
-            size: "1024x1024",
+            input_images: refUrls,
+            aspect_ratio: "1:1",
+            output_format: "png",
+            number_of_images: 1,
+            openai_api_key: process.env.OPENAI_API_KEY,
           },
         });
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Replicate done ${brief.id}`, { elapsed: `${elapsed}ms`, outputType: typeof output, outputStr: JSON.stringify(output).slice(0, 300) });
+        apiLog(`[${reqId}] Replicate done ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 300) });
 
-        // Parse the output - Replicate image models return varying formats
-        let imageUrl: string;
-        if (Array.isArray(output)) {
-          const first = output[0];
-          if (typeof first === "string") {
-            imageUrl = first;
-          } else if (typeof first === "object" && first !== null) {
-            const obj = first as Record<string, unknown>;
-            imageUrl = (obj.url || obj.image_url || obj.output || "") as string;
-          } else {
-            throw new Error(`Unexpected array element: ${JSON.stringify(first).slice(0, 100)}`);
-          }
-        } else if (typeof output === "string") {
-          imageUrl = output;
-        } else if (typeof output === "object" && output !== null) {
-          const obj = output as Record<string, unknown>;
-          imageUrl = (obj.url || obj.image_url || obj.output || "") as string;
-        } else {
-          throw new Error(`Unexpected output: ${JSON.stringify(output).slice(0, 200)}`);
+        const imageUrl = Array.isArray(output)
+          ? String(output[0] || "")
+          : String(output || "");
+
+        if (!imageUrl || !imageUrl.startsWith("http")) {
+          throw new Error(`No valid image URL in output: ${JSON.stringify(output).slice(0, 150)}`);
         }
 
-        if (!imageUrl || typeof imageUrl !== "string") {
-          throw new Error(`Unexpected output: ${JSON.stringify(output).slice(0, 100)}`);
-        }
-
+        apiLog(`[${reqId}] Fetching ${brief.id}`, { url: imageUrl.slice(0, 80) });
         const resp = await fetch(imageUrl);
-        if (!resp.ok) throw new Error(`Failed to fetch generated image: ${resp.status}`);
+        if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
         const buffer = Buffer.from(await resp.arrayBuffer());
         const watermarked = await applyWatermark(buffer, false);
         const finalB64 = watermarked.toString("base64");
