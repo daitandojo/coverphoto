@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     apiLog(`[${reqId}] Refs uploaded`, { count: refUrls.length });
 
     // Generate with concurrency limit of 2 (avoids Replicate rate limits)
-    const CONCURRENCY = 2;
+    const CONCURRENCY = 1;
     const generatedPortraits: Array<{
       id: string; style: string; url: string; status: "completed" | "error"; error?: string;
     }> = [];
