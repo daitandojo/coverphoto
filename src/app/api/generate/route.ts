@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     if (!briefs.length) return NextResponse.json({ error: "No valid portrait types" }, { status: 400 });
 
     const email = session.user!.email!;
-    const refUrls = await Promise.all(images.map((img: string, i: number) => uploadRef(img, email, i)));
+    const refUrls = await Promise.all(images.slice(0, 3).map((img: string, i: number) => uploadRef(img, email, i)));
     apiLog(`[${reqId}] Refs uploaded`, { count: refUrls.length });
 
     const results = await Promise.allSettled(
