@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 import RefPanel from "./RefPanel";
@@ -8,6 +8,7 @@ import BuilderPanel from "./BuilderPanel";
 import GenerateCTA from "./GenerateCTA";
 import PortraitGallery from "./PortraitGallery";
 import ShareCard from "./ShareCard";
+import WebcamModal from "./WebcamModal";
 
 const PANEL_W = 310;
 const EDGE_HOVER_MARGIN = 59;
@@ -19,6 +20,7 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
     setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel,
     showShareCard,
   } = usePortraitStore();
+  const [showCam, setShowCam] = useState(false);
 
   const leftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,10 +33,8 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
     const handler = (e: MouseEvent) => {
       const nearLeft = e.clientX <= EDGE_HOVER_MARGIN;
       const nearRight = e.clientX >= window.innerWidth - EDGE_HOVER_MARGIN;
-
       if (nearLeft && !leftPanelOpen) { setLeftPanelOpen(true); cancelLeft(); leftTimer.current = setTimeout(() => usePortraitStore.getState().setLeftPanelOpen(false), AUTO_CLOSE_MS); }
       else if (!nearLeft) cancelLeft();
-
       if (nearRight && !rightPanelOpen) { setRightPanelOpen(true); cancelRight(); rightTimer.current = setTimeout(() => usePortraitStore.getState().setRightPanelOpen(false), AUTO_CLOSE_MS); }
       else if (!nearRight) cancelRight();
     };
@@ -47,31 +47,17 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
       {/* LEFT */}
       <div className="relative z-20 flex-shrink-0">
         {!leftPanelOpen && (
-          <motion.button
-            onClick={(e) => { e.stopPropagation(); toggleLeftPanel(); cancelLeft(); }}
+          <motion.button onClick={(e) => { e.stopPropagation(); toggleLeftPanel(); cancelLeft(); }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-[22px] h-24 rounded-r-lg border border-l-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors"
-          >
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-[22px] h-24 rounded-r-lg border border-l-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors">
             <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", transform: "rotate(180deg)", letterSpacing: "0.15em" }}>📷 REF</span>
           </motion.button>
         )}
         <AnimatePresence>
           {leftPanelOpen && (
-            <motion.div
-              initial={{ x: -PANEL_W }} animate={{ x: 0 }} exit={{ x: -PANEL_W }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="h-full border-r border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-y-auto p-4"
-              style={{ width: PANEL_W, minWidth: PANEL_W }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] text-[rgba(240,237,232,0.15)] uppercase tracking-widest" style={{ fontFamily: "'DM Mono', monospace" }}>Left</span>
-                <button
-                  onClick={() => usePortraitStore.getState().pinLeftPanel(!usePortraitStore.getState().leftPanelPinned)}
-                  className="text-xs text-[rgba(240,237,232,0.2)] hover:text-[#C8B99A] transition-colors"
-                >📌</button>
-              </div>
-              <RefPanel />
+            <motion.div initial={{ x: -PANEL_W }} animate={{ x: 0 }} exit={{ x: -PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
+              className="h-full border-r border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-y-auto p-4" style={{ width: PANEL_W, minWidth: PANEL_W }} onClick={(e) => e.stopPropagation()}>
+              <RefPanel onCameraClick={() => setShowCam(true)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -89,28 +75,24 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
       {/* RIGHT */}
       <div className="relative z-20 flex-shrink-0">
         {!rightPanelOpen && (
-          <motion.button
-            onClick={(e) => { e.stopPropagation(); toggleRightPanel(); cancelRight(); }}
+          <motion.button onClick={(e) => { e.stopPropagation(); toggleRightPanel(); cancelRight(); }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-[22px] h-24 rounded-l-lg border border-r-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors"
-          >
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-[22px] h-24 rounded-l-lg border border-r-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors">
             <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", letterSpacing: "0.15em" }}>✦ BUILD</span>
           </motion.button>
         )}
         <AnimatePresence>
           {rightPanelOpen && (
-            <motion.div
-              initial={{ x: PANEL_W }} animate={{ x: 0 }} exit={{ x: PANEL_W }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4"
-              style={{ width: PANEL_W, minWidth: PANEL_W }}
-              onClick={(e) => e.stopPropagation()}
-            >
+            <motion.div initial={{ x: PANEL_W }} animate={{ x: 0 }} exit={{ x: PANEL_W }} transition={{ duration: 0.25, ease: "easeOut" }}
+              className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4" style={{ width: PANEL_W, minWidth: PANEL_W }} onClick={(e) => e.stopPropagation()}>
               <BuilderPanel />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Webcam modal — rendered outside panels to avoid transform-breaking fixed */}
+      {showCam && <WebcamModal onClose={() => setShowCam(false)} />}
     </div>
   );
 }
