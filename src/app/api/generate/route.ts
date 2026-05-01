@@ -4,44 +4,26 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
 import { getBriefs } from "@/lib/prompts";
-import Replicate from "replicate";
+import OpenAI from "openai";
 
 const LOG = "[CoverPhoto:API]";
 function apiLog(...args: any[]) { console.log(LOG, ...args); }
 function apiError(...args: any[]) { console.error(LOG, "[ERROR]", ...args); }
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
 });
-
-async function uploadToBlob(
-  base64: string,
-  email: string,
-  index: number
-): Promise<string> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return base64; // fallback
-  }
-  const { put } = await import("@vercel/blob");
-  const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
-  const { url } = await put(
-    `references/${email}/${Date.now()}-${index}.jpg`,
-    buffer,
-    { access: "public" }
-  );
-  return url;
-}
 
 export async function POST(request: Request) {
   const reqId = Math.random().toString(36).slice(2, 8);
-  apiLog(`[${reqId}] POST /api/generate start`);
+  apiLog(`[${reqId}] POST /api/generate`);
 
   try {
     const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    apiLog(`[${reqId}] Auth OK`, { email: session.user.email });
+    apiLog(`[${reqId}] Auth`, { email: session.user.email });
 
     const rateCheck = await checkRateLimit(session.user.email);
     if (!rateCheck.success) {
@@ -52,10 +34,10 @@ export async function POST(request: Request) {
       where: { email: session.user.email },
     });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    apiLog(`[${reqId}] User`, { credits: user.credits });
+    apiLog(`[${reqId}] Credits`, { credits: user.credits });
 
     const { images, count = 4, selectedTypes, customPrompts } = await request.json();
-    apiLog(`[${reqId}] Body`, { images: images?.length, count, types: selectedTypes?.length });
+    apiLog(`[${reqId}] Request`, { images: images?.length, count, types: selectedTypes?.length });
 
     if (!images || !Array.isArray(images) || images.length < 2) {
       return NextResponse.json({ error: "At least 2 reference images required" }, { status: 400 });
@@ -81,52 +63,37 @@ export async function POST(request: Request) {
       where: { id: user.id },
       data: { credits: user.credits - creditCost },
     });
-    apiLog(`[${reqId}] Credits deducted`, { cost: creditCost, remaining: user.credits - creditCost });
+    apiLog(`[${reqId}] Deducted`, { cost: creditCost, remaining: user.credits - creditCost });
 
     const portraitSession = await prisma.portraitSessionRecord.create({
       data: { userId: user.id, images: JSON.stringify(images), portraits: JSON.stringify([]) },
     });
-    apiLog(`[${reqId}] Session`, { id: portraitSession.id });
 
-    // Upload reference images to Vercel Blob for public URLs
-    const userEmail = session.user!.email!;
-    const refUrls = await Promise.all(
-      images.map((img: string, i: number) => uploadToBlob(img, userEmail, i))
-    );
-    apiLog(`[${reqId}] Ref URLs`, { count: refUrls.length, first: refUrls[0].slice(0, 60) });
+    // Extract raw base64 from data URLs
+    const refBase64 = images.map((img: string) => img.split(",")[1] || img);
+    apiLog(`[${reqId}] Refs`, { count: refBase64.length });
 
-    // Generate portraits in parallel via Replicate openai/gpt-image-2
+    // Generate all portraits in parallel
     const results = await Promise.allSettled(
       briefs.map(async (brief, idx) => {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
-        apiLog(`[${reqId}] Brief ${idx}`, { style: brief.id, promptLen: effectivePrompt.length });
-
         const start = Date.now();
-        const output = await replicate.run("openai/gpt-image-2", {
-          input: {
-            prompt: effectivePrompt,
-            input_images: refUrls,
-            aspect_ratio: "1:1",
-            output_format: "png",
-            number_of_images: 1,
-            openai_api_key: process.env.OPENAI_API_KEY,
-          },
+
+        const resp = await (openai.images.generate as any)({
+          model: "gpt-image-2",
+          prompt: effectivePrompt,
+          size: "1024x1024",
+          input_images: refBase64,
+          n: 1,
         });
+
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Replicate done ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 300) });
+        apiLog(`[${reqId}] OpenAI ${brief.id}`, { elapsed: `${elapsed}ms` });
 
-        const imageUrl = Array.isArray(output)
-          ? String(output[0] || "")
-          : String(output || "");
+        const b64 = resp.data[0]?.b64_json;
+        if (!b64) throw new Error("No image generated");
 
-        if (!imageUrl || !imageUrl.startsWith("http")) {
-          throw new Error(`No valid image URL in output: ${JSON.stringify(output).slice(0, 150)}`);
-        }
-
-        apiLog(`[${reqId}] Fetching ${brief.id}`, { url: imageUrl.slice(0, 80) });
-        const resp = await fetch(imageUrl);
-        if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
-        const buffer = Buffer.from(await resp.arrayBuffer());
+        const buffer = Buffer.from(b64, "base64");
         const watermarked = await applyWatermark(buffer, false);
         const finalB64 = watermarked.toString("base64");
         return { style: brief.id, url: `data:image/jpeg;base64,${finalB64}` };
@@ -169,6 +136,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Generation failed";
     apiError(`[${reqId}] Catch`, { message: msg });
+    console.error("Generation error:", error);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
