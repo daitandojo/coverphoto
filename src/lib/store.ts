@@ -62,6 +62,8 @@ interface PortraitStore {
   incrementSpecial: (id: string) => void;
   decrementSpecial: (id: string) => void;
   setSpecialField: (id: string, key: string, value: string) => void;
+  loadSession: (data: { portraits: any[]; refImages: string[]; sessionId: string | null; credits: number }) => void;
+  removeLastPlaceholder: (style: string) => void;
 }
 
 function makeTC(): TypeCounter {
@@ -154,7 +156,12 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     const current = s.typeCounters[id] || 0;
     const generated = s.generatedCounts[id] || 0;
     if (current <= generated) return; // cannot go below already-generated count
-    set((st) => ({ typeCounters: { ...st.typeCounters, [id]: Math.max(0, (st.typeCounters[id] || 0) - 1) } }));
+    const newCount = Math.max(0, current - 1);
+    set((st) => ({ typeCounters: { ...st.typeCounters, [id]: newCount } }));
+    // If we still have placeholders, remove the last one
+    if (newCount > generated) {
+      get().removeLastPlaceholder(id);
+    }
   },
 
   addPlaceholder: (styleId) => {
@@ -182,8 +189,53 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   incrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: (s.specialCounters[id] || 0) + 1 } })),
   decrementSpecial: (id) => {
     const s = get();
-    if ((s.specialCounters[id] || 0) <= (s.generatedCounts[id] || 0)) return;
-    set((st) => ({ specialCounters: { ...st.specialCounters, [id]: Math.max(0, (st.specialCounters[id] || 0) - 1) } }));
+    const current = s.specialCounters[id] || 0;
+    const generated = s.generatedCounts[id] || 0;
+    if (current <= generated) return;
+    const newCount = Math.max(0, current - 1);
+    set((st) => ({ specialCounters: { ...st.specialCounters, [id]: newCount } }));
+    if (newCount > generated) {
+      get().removeLastPlaceholder(id);
+    }
   },
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
+
+  removeLastPlaceholder: (style: string) => {
+    set((s) => {
+      const copy = [...s.portraits];
+      // Find the last pending portrait of this style and remove it
+      for (let i = copy.length - 1; i >= 0; i--) {
+        if (copy[i].style === style && copy[i].status === "pending") {
+          copy.splice(i, 1);
+          break;
+        }
+      }
+      return { portraits: copy };
+    });
+  },
+
+  loadSession: (data) => {
+    const portraits: PortraitImage[] = (data.portraits || []).map((p: any, i: number) => ({
+      id: p.id || `restored-${i}`,
+      url: p.url || "",
+      style: p.style || "executive",
+      status: p.status || "completed",
+      error: p.error,
+    }));
+    // Build typeCounters and generatedCounts from loaded portraits
+    const tc = makeTC();
+    const gc = makeGenTC();
+    portraits.forEach((p) => {
+      if (tc[p.style] !== undefined) tc[p.style] = (tc[p.style] || 0) + 1;
+      if (p.status === "completed" && gc[p.style] !== undefined) gc[p.style] = (gc[p.style] || 0) + 1;
+    });
+    set({
+      portraits,
+      typeCounters: tc,
+      generatedCounts: gc,
+      sessionId: data.sessionId,
+      credits: data.credits,
+      showShareCard: portraits.length > 0 && portraits.every((p) => p.status !== "pending"),
+    });
+  },
 }));

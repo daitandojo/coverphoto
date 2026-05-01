@@ -69,6 +69,11 @@ export default function Home() {
         .then((r) => r.json())
         .then((d) => { if (d.credits !== undefined) setCredits(d.credits); })
         .catch(() => {});
+      // Load current session
+      fetch("/api/session/current")
+        .then((r) => r.json())
+        .then((d) => { if (d.portraits) usePortraitStore.getState().loadSession(d); })
+        .catch(() => {});
       // Request notification permission on first use
       if ("Notification" in window && Notification.permission === "default") {
         Notification.requestPermission();
