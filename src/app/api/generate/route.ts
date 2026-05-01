@@ -4,35 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
 import { getBriefs } from "@/lib/prompts";
-import Replicate from "replicate";
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
-});
-
-async function uploadImage(
-  base64: string,
-  email: string,
-  index: number
-): Promise<string> {
-  // Try Vercel Blob first
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    try {
-      const { put } = await import("@vercel/blob");
-      const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
-      const { url } = await put(
-        `references/${email}/${Date.now()}-${index}.jpg`,
-        buffer,
-        { access: "public" }
-      );
-      return url;
-    } catch (e) {
-      console.warn("Vercel Blob upload failed, falling back to data URL:", e);
-    }
-  }
-  // Fallback: return the base64 data URL — Replicate may or may not support this
-  return base64;
-}
 
 export async function POST(request: Request) {
   try {
@@ -70,7 +41,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
-    // Determine which briefs to use
     const briefs = getBriefs(
       selectedTypes?.length > 0 ? selectedTypes : ["executive", "founder", "statesperson", "outdoors"]
     );
@@ -78,12 +48,6 @@ export async function POST(request: Request) {
     if (briefs.length === 0) {
       return NextResponse.json({ error: "No valid portrait types selected" }, { status: 400 });
     }
-
-    // Upload reference images to accessible URLs
-    const userEmail = session.user!.email!;
-    const uploadedUrls = await Promise.all(
-      images.map((img: string, i: number) => uploadImage(img, userEmail, i))
-    );
 
     // Deduct credits server-side
     await prisma.user.update({
@@ -95,46 +59,44 @@ export async function POST(request: Request) {
     const portraitSession = await prisma.portraitSessionRecord.create({
       data: {
         userId: user.id,
-        images: JSON.stringify(uploadedUrls),
+        images: JSON.stringify(images),
         portraits: JSON.stringify([]),
       },
     });
 
-    // Generate portraits in parallel
+    // Generate portraits using gpt-image-2
     const results = await Promise.allSettled(
       briefs.map(async (brief) => {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
 
-        const output = await replicate.run(
-          "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-          {
-            input: {
-              prompt: effectivePrompt,
-              negative_prompt:
-                "cartoon, anime, illustration, painting, distorted face, bad anatomy",
-              width: 1024,
-              height: 1024,
-              num_outputs: 1,
-              scheduler: "DPMSolverMultistep",
-              num_inference_steps: 30,
-              guidance_scale: 7,
-              ip_adapter_image: uploadedUrls[0],
-              ip_adapter_scale: 0.6,
-            },
-          }
-        );
+        const res = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-image-2",
+            prompt: effectivePrompt,
+            n: 1,
+            size: "1024x1024",
+          }),
+        });
 
-        const imageUrl = Array.isArray(output) ? output[0] : output;
-        if (!imageUrl || typeof imageUrl !== "string") {
-          throw new Error("No image generated");
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`OpenAI API error: ${err}`);
         }
 
-        const response = await fetch(imageUrl);
-        const buffer = Buffer.from(await response.arrayBuffer());
+        const data = await res.json();
+        const b64 = data.data?.[0]?.b64_json;
+        if (!b64) throw new Error("No image data in response");
+
+        const buffer = Buffer.from(b64, "base64");
         const isPaid = false;
         const watermarked = await applyWatermark(buffer, isPaid);
-        const b64 = watermarked.toString("base64");
-        return { style: brief.id, url: `data:image/jpeg;base64,${b64}` };
+        const finalB64 = watermarked.toString("base64");
+        return { style: brief.id, url: `data:image/jpeg;base64,${finalB64}` };
       })
     );
 
@@ -152,7 +114,7 @@ export async function POST(request: Request) {
         style: briefs[index]?.id || "unknown",
         url: "",
         status: "error" as const,
-        error: result.reason?.message || "Generation failed. Please retry.",
+        error: result.reason?.message || "Generation failed.",
       };
     });
 
