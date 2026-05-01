@@ -95,7 +95,7 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
           {isGenerating ? "✦ Generating ✦" : "✦ Your Series Awaits ✦"}
         </p>
 
-        <p ref={box} className="relative text-3xl md:text-4xl leading-snug max-w-xl mx-auto text-[rgba(240,237,232,0.45)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontStyle: "italic" }}>
+        <div ref={box} className="relative text-3xl md:text-4xl leading-snug max-w-xl mx-auto text-[rgba(240,237,232,0.45)]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontStyle: "italic" }}>
           {/* Mist cloud */}
           <motion.div animate={glow} className="absolute pointer-events-none z-0"
             style={{ background: `radial-gradient(ellipse at center, rgba(200,185,154,0.3) 0%, rgba(200,185,154,0.1) 35%, transparent 65%)`, filter: "blur(80px) saturate(1.3)", willChange: "transform, opacity" }} />
@@ -116,7 +116,7 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
               <span>, and bring your vision to life.</span>
             </span>
           )}
-        </p>
+        </div>
       </motion.div>
 
       {/* CTA */}
