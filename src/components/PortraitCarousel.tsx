@@ -18,13 +18,15 @@ interface CarouselProps {
 function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions }: CarouselProps) {
   if (items.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center border border-dashed border-white/5 rounded-xl min-h-[300px]">
+      <div className="flex-1 flex items-center justify-center border border-dashed border-white/5 rounded-xl min-h-[360px]">
         <p className="text-xs text-[rgba(240,237,232,0.15)] italic" style={{ fontFamily: "'DM Mono', monospace" }}>{emptyLabel}</p>
       </div>
     );
   }
 
   const item = items[idx];
+  const showArrows = items.length > 1;
+
   const getName = (style: string) => {
     const b = BRIEFS.find((s) => s.id === style);
     if (b) return b.name;
@@ -35,43 +37,56 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions }: Caro
   const isReady = item.url && (item.status === "completed" || item.status === "error");
 
   return (
-    <div className="flex-1 flex flex-col items-center gap-2 min-h-0">
-      <p className="text-[9px] tracking-[0.3em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>{label}</p>
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Label with more top margin */}
+      <p className="text-[9px] tracking-[0.3em] text-[rgba(200,185,154,0.2)] uppercase mb-2 pt-1 text-center" style={{ fontFamily: "'DM Mono', monospace" }}>{label} <span className="text-[rgba(240,237,232,0.15)]">({items.length})</span></p>
 
-      {/* Main card */}
-      <div className="relative w-full max-w-[300px] flex-1 flex items-center">
-        <AnimatePresence mode="wait">
-          <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }} className="w-full h-full">
-            <div className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[320px] bg-[rgba(255,255,255,0.02)] border border-white/5">
-              {item.status === "generating" || !item.url ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center shimmer-fast">
-                  <p className="text-xs text-[rgba(200,185,154,0.5)]" style={{ fontFamily: "'DM Mono', monospace" }}>{getName(item.style)}</p>
-                  <p className="text-[10px] text-[rgba(240,237,232,0.2)] mt-2" style={{ fontFamily: "'DM Mono', monospace" }}>Generating…</p>
-                </div>
-              ) : (
-                <img src={item.url} alt="" className="w-full h-full object-cover" />
-              )}
+      {/* Main card — larger with side arrows */}
+      <div className="relative flex-1 flex items-center min-h-0">
+        <div className="relative w-full h-full max-h-full flex items-center">
+          <AnimatePresence mode="wait">
+            <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }} className="w-full h-full">
+              <div className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[360px] w-full bg-[rgba(255,255,255,0.02)] border border-white/5">
+                {item.status === "generating" || !item.url ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center shimmer-fast">
+                    <p className="text-xs text-[rgba(200,185,154,0.5)]" style={{ fontFamily: "'DM Mono', monospace" }}>{getName(item.style)}</p>
+                    <p className="text-[10px] text-[rgba(240,237,232,0.2)] mt-2" style={{ fontFamily: "'DM Mono', monospace" }}>Generating…</p>
+                  </div>
+                ) : (
+                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                )}
 
-              {/* Bottom action bar overlay */}
-              {isReady && (
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center gap-2">
-                  {renderActions(item)}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
+                {/* Left arrow overlay */}
+                {showArrows && (
+                  <button onClick={(e) => { e.stopPropagation(); setIdx((idx - 1 + items.length) % items.length); }}
+                    className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all z-10"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>‹</button>
+                )}
 
-      {/* Nav */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => setIdx((idx - 1 + items.length) % items.length)}
-          className="w-7 h-7 rounded-full border border-white/10 flex items-center justify-center text-xs text-[rgba(240,237,232,0.4)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all"
-          style={{ fontFamily: "'DM Mono', monospace" }}>‹</button>
-        <span className="text-[10px] text-[rgba(240,237,232,0.2)] tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>{idx + 1}/{items.length}</span>
-        <button onClick={() => setIdx((idx + 1) % items.length)}
-          className="w-7 h-7 rounded-full border border-white/10 flex items-center justify-center text-xs text-[rgba(240,237,232,0.4)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all"
-          style={{ fontFamily: "'DM Mono', monospace" }}>›</button>
+                {/* Right arrow overlay */}
+                {showArrows && (
+                  <button onClick={(e) => { e.stopPropagation(); setIdx((idx + 1) % items.length); }}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-sm text-white/60 hover:bg-white/10 hover:text-white transition-all z-10"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>›</button>
+                )}
+
+                {/* Counter badge */}
+                {showArrows && (
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 text-[9px] text-white/50 tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>
+                    {idx + 1}/{items.length}
+                  </div>
+                )}
+
+                {/* Bottom action bar overlay */}
+                {isReady && (
+                  <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center gap-2">
+                    {renderActions(item)}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
