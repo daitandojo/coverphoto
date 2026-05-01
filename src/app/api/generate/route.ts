@@ -59,12 +59,8 @@ export async function POST(request: Request) {
     }
     apiLog(`[${reqId}] Briefs`, { count: briefs.length, names: briefs.map((b) => b.id) });
 
-    // Format reference images as data URLs (sdK expects image_url, not image_base64)
-    // Cap at 3 for face consistency
-    const refImages = images.slice(0, 3).map((img: string) => ({
-      type: "input_image" as const,
-      image_url: img, // already a full data:image/jpeg;base64,... URL
-    }));
+    // Raw base64 (strip data:image prefix) for images.generate input
+    const refBase64 = images.slice(0, 3).map((img: string) => img.split(",")[1] || img);
 
     // Generate all portraits in parallel
     const results = await Promise.allSettled(
@@ -72,26 +68,20 @@ export async function POST(request: Request) {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
         const start = Date.now();
 
-        const resp = await (openai.responses as any).create({
+        const resp = await (openai.images.generate as any)({
           model: "gpt-image-2",
-          input: [{
-            role: "user",
-            content: [
-              { type: "input_text", text: effectivePrompt },
-              ...refImages,
-            ],
-          }],
+          prompt: effectivePrompt,
+          size: "1024x1024",
+          n: 1,
+          input_images: refBase64,
         });
 
         apiLog(`[${reqId}] OpenAI ${brief.id}`, { elapsed: `${Date.now() - start}ms` });
 
-        const outputImage = (resp.output || [])
-          .flatMap((o: any) => o.content || [])
-          .find((c: any) => c.type === "output_image");
+        const b64 = resp.data?.[0]?.b64_json;
+        if (!b64) throw new Error("No image generated");
 
-        if (!outputImage?.image_base64) throw new Error("No image in response");
-
-        const buffer = Buffer.from(outputImage.image_base64, "base64");
+        const buffer = Buffer.from(b64, "base64");
         const watermarked = await applyWatermark(buffer, false);
         const finalB64 = watermarked.toString("base64");
         return { style: brief.id, url: `data:image/jpeg;base64,${finalB64}` };
@@ -121,8 +111,7 @@ export async function POST(request: Request) {
     const okCount = generatedPortraits.filter((p) => p.status === "completed").length;
     apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok: okCount });
 
-    // Deduct credits ONLY after successful generation
-    // If every portrait failed, refund by not deducting
+    // Deduct only if at least one portrait succeeded
     if (okCount > 0) {
       await prisma.user.update({
         where: { id: user.id },
