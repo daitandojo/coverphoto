@@ -17,7 +17,7 @@ const RIGHT_PANEL_W = 500;
 const EDGE_HOVER_MARGIN = 59;
 const AUTO_CLOSE_MS = 8000;
 
-export default function Workbench({ onGenerate, onGeneratePending }: { onGenerate: () => void; onGeneratePending?: (style: string) => void }) {
+export default function Workbench({ onGenerate, onGeneratePending, onRetry }: { onGenerate: () => void; onGeneratePending?: (style: string) => void; onRetry?: (style: string) => void }) {
   const { leftPanelOpen, rightPanelOpen, leftPanelPinned, rightPanelPinned, setLeftPanelOpen, setRightPanelOpen, toggleLeftPanel, toggleRightPanel, showShareCard, resetPortraits } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -63,7 +63,7 @@ export default function Workbench({ onGenerate, onGeneratePending }: { onGenerat
           <motion.p initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
             className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</motion.p>
           <GenerateCTA onGenerate={onGenerate} />
-          <PortraitGallery onRetry={undefined} onGeneratePending={onGeneratePending} />
+          <PortraitGallery onRetry={onRetry} onGeneratePending={onGeneratePending} />
           {showShareCard && <ShareCard />}
 
           {/* Action buttons below gallery */}

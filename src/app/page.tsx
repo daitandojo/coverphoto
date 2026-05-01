@@ -69,6 +69,10 @@ export default function Home() {
         .then((r) => r.json())
         .then((d) => { if (d.credits !== undefined) setCredits(d.credits); })
         .catch(() => {});
+      // Request notification permission on first use
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
     }
   }, [status, setCredits]);
 
@@ -111,6 +115,10 @@ export default function Home() {
       setSessionId(data.sessionId || null);
       if (isFirstRun) { setShowConfetti(true); completeFirstRun(); setTimeout(() => setShowConfetti(false), 3000); }
       const errors = data.portraits?.filter((p: any) => p.status === "error") || [];
+      const okCount = data.portraits?.filter((p: any) => p.status === "completed").length || 0;
+      if (okCount > 0 && "Notification" in window && Notification.permission === "granted") {
+        new Notification("CoverPhoto", { body: `${okCount} portrait${okCount > 1 ? "s" : ""} ready!`, icon: "/logo.png" });
+      }
       if (errors.length > 0) { toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed`, { className: "toast-custom", icon: "⚠", duration: 6000 }); }
       else { setShowShareCard(true); }
     } catch (err: any) {
@@ -139,6 +147,37 @@ export default function Home() {
     } catch {
       toast("Generation failed.", { className: "toast-custom", icon: "⚠" });
     } finally { setGenerating(false); }
+  }, [uploadedImages, credits, session, updatePortrait, setCredits, setShowBuyCredits]);
+
+  // Send browser notification on portrait completion
+  useEffect(() => {
+    const completed = usePortraitStore.getState().portraits.filter((p) => p.status === "completed").length;
+    if (completed > 0 && "Notification" in window && Notification.permission === "granted") {
+      new Notification("CoverPhoto", { body: `${completed} portrait${completed > 1 ? "s" : ""} ready!`, icon: "/logo.png" });
+    }
+  });
+
+  // Retry a single portrait — same as handleGeneratePending but with credit check
+  const handleRetryOne = useCallback(async (style: string) => {
+    if (uploadedImages.length < 2) { toast("Upload at least 2 reference images", { className: "toast-custom", icon: "◎" }); return; }
+    if (credits < 1) { setShowBuyCredits(true); return; }
+    if (!session) { signIn("google"); return; }
+    setGenerating(true);
+    try {
+      const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
+      const res = await fetch("/api/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: imagesBase64, typeCounters: { [style]: 1 }, specialConfigs: {}, specialFields: {} }),
+      });
+      if (!res.ok) throw new Error("Retry failed");
+      const data = await res.json();
+      data.portraits?.forEach((p: any) => updatePortrait(p.id, { url: p.url, status: p.status, error: p.error }));
+      if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
+      if (data.portraits?.some((p: any) => p.status === "completed") && "Notification" in window && Notification.permission === "granted") {
+        new Notification("CoverPhoto", { body: "Portrait regenerated!", icon: "/logo.png" });
+      }
+    } catch { toast("Retry failed.", { className: "toast-custom", icon: "⚠" }); }
+    finally { setGenerating(false); }
   }, [uploadedImages, credits, session, updatePortrait, setCredits, setShowBuyCredits]);
 
   return (
@@ -172,7 +211,7 @@ export default function Home() {
             )}
 
             {/* WORKBENCH */}
-            {status === "authenticated" && <Workbench onGenerate={handleGenerate} onGeneratePending={handleGeneratePending} />}
+            {status === "authenticated" && <Workbench onGenerate={handleGenerate} onGeneratePending={handleGeneratePending} onRetry={handleRetryOne} />}
 
             {/* Loading */}
             {status === "loading" && <main className="flex-1 flex items-center justify-center"><div className="shimmer w-8 h-8 rounded-full" /></main>}
