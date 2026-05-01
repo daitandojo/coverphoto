@@ -4,15 +4,32 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
 import { getBriefs } from "@/lib/prompts";
+import Replicate from "replicate";
 
 const LOG = "[CoverPhoto:API]";
 function apiLog(...args: any[]) { console.log(LOG, ...args); }
 function apiError(...args: any[]) { console.error(LOG, "[ERROR]", ...args); }
 
-function base64ToBlob(base64: string): Blob {
-  const raw = base64.split(",")[1] || base64;
-  const buf = Buffer.from(raw, "base64");
-  return new Blob([buf], { type: "image/png" });
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN!,
+});
+
+async function uploadToBlob(
+  base64: string,
+  email: string,
+  index: number
+): Promise<string> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return base64; // fallback
+  }
+  const { put } = await import("@vercel/blob");
+  const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
+  const { url } = await put(
+    `references/${email}/${Date.now()}-${index}.jpg`,
+    buffer,
+    { access: "public" }
+  );
+  return url;
 }
 
 export async function POST(request: Request) {
@@ -22,25 +39,23 @@ export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
-      apiLog(`[${reqId}] Unauthorized`);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     apiLog(`[${reqId}] Auth OK`, { email: session.user.email });
 
     const rateCheck = await checkRateLimit(session.user.email);
     if (!rateCheck.success) {
-      apiLog(`[${reqId}] Rate limited`);
-      return NextResponse.json({ error: "Rate limit exceeded.", retryAfter: rateCheck.reset }, { status: 429 });
+      return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
     }
-    apiLog(`[${reqId}] Rate OK`);
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    apiLog(`[${reqId}] User found`, { credits: user.credits });
+    apiLog(`[${reqId}] User`, { credits: user.credits });
 
-    const body = await request.json();
-    const { images, count = 4, selectedTypes, customPrompts } = body;
-    apiLog(`[${reqId}] Body parsed`, { images: images?.length, count, selectedTypes: selectedTypes?.length });
+    const { images, count = 4, selectedTypes, customPrompts } = await request.json();
+    apiLog(`[${reqId}] Body`, { images: images?.length, count, types: selectedTypes?.length });
 
     if (!images || !Array.isArray(images) || images.length < 2) {
       return NextResponse.json({ error: "At least 2 reference images required" }, { status: 400 });
@@ -48,8 +63,8 @@ export async function POST(request: Request) {
 
     const promptEditEnabled = customPrompts && Object.keys(customPrompts).length > 0;
     const creditCost = count + (promptEditEnabled ? 2 : 0);
+
     if (user.credits < creditCost) {
-      apiLog(`[${reqId}] Insufficient credits`);
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
@@ -62,85 +77,86 @@ export async function POST(request: Request) {
     }
     apiLog(`[${reqId}] Briefs`, { count: briefs.length, names: briefs.map((b) => b.id) });
 
-    await prisma.user.update({ where: { id: user.id }, data: { credits: user.credits - creditCost } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { credits: user.credits - creditCost },
+    });
     apiLog(`[${reqId}] Credits deducted`, { cost: creditCost, remaining: user.credits - creditCost });
 
     const portraitSession = await prisma.portraitSessionRecord.create({
       data: { userId: user.id, images: JSON.stringify(images), portraits: JSON.stringify([]) },
     });
-    apiLog(`[${reqId}] Session created`, { sessionId: portraitSession.id });
+    apiLog(`[${reqId}] Session`, { id: portraitSession.id });
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      apiError(`[${reqId}] Missing OPENAI_API_KEY`);
-      throw new Error("API key not configured");
-    }
-    apiLog(`[${reqId}] OPENAI_API_KEY present`, { length: apiKey.length });
+    // Upload reference images to Vercel Blob for public URLs
+    const userEmail = session.user!.email!;
+    const refUrls = await Promise.all(
+      images.map((img: string, i: number) => uploadToBlob(img, userEmail, i))
+    );
+    apiLog(`[${reqId}] Ref URLs`, { count: refUrls.length, first: refUrls[0].slice(0, 60) });
 
-    const refBlobs = images.map(base64ToBlob);
-    apiLog(`[${reqId}] Reference blobs created`, { count: refBlobs.length, sizes: refBlobs.map((b) => b.size) });
-
+    // Generate portraits in parallel via Replicate openai/gpt-image-2
     const results = await Promise.allSettled(
       briefs.map(async (brief, idx) => {
         const effectivePrompt = customPrompts?.[brief.id] || brief.prompt;
-        apiLog(`[${reqId}] Brief ${idx} start`, { style: brief.id, promptLen: effectivePrompt.length });
+        apiLog(`[${reqId}] Brief ${idx}`, { style: brief.id, promptLen: effectivePrompt.length });
 
-        const formData = new FormData();
-        formData.append("model", "gpt-image-2");
-        for (const blob of refBlobs) {
-          formData.append("image[]", blob, "reference.png");
-        }
-        formData.append("prompt", effectivePrompt);
-        formData.append("n", "1");
-        formData.append("size", "1024x1024");
-        formData.append("response_format", "b64_json");
-
-        const openaiStart = Date.now();
-        apiLog(`[${reqId}] Fetching OpenAI /v1/images/edits for ${brief.id}`);
-
-        const resp = await fetch("https://api.openai.com/v1/images/edits", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: formData,
+        const start = Date.now();
+        const output = await replicate.run("openai/gpt-image-2", {
+          input: {
+            prompt: effectivePrompt,
+            image: refUrls,
+            size: "1024x1024",
+          },
         });
+        const elapsed = Date.now() - start;
+        apiLog(`[${reqId}] Replicate OK ${brief.id}`, { elapsed: `${elapsed}ms` });
 
-        const elapsed = Date.now() - openaiStart;
-        apiLog(`[${reqId}] OpenAI respond ${brief.id}`, { status: resp.status, elapsed: `${elapsed}ms` });
-
-        if (!resp.ok) {
-          const errText = await resp.text();
-          apiError(`[${reqId}] OpenAI error ${brief.id}`, { status: resp.status, body: errText.slice(0, 500) });
-          throw new Error(`OpenAI edits error (${resp.status}): ${errText.slice(0, 200)}`);
+        // output may be array of URLs or single URL
+        let imageUrl: string;
+        if (Array.isArray(output)) {
+          imageUrl = output[0] as string;
+        } else if (typeof output === "object" && output !== null && "url" in output) {
+          imageUrl = (output as unknown as { url: string }).url;
+        } else {
+          imageUrl = output as unknown as string;
         }
 
-        const data = await resp.json();
-        const b64 = data.data?.[0]?.b64_json;
-        if (!b64) {
-          apiError(`[${reqId}] No b64_json for ${brief.id}`);
-          throw new Error("No image data in response");
+        if (!imageUrl || typeof imageUrl !== "string") {
+          throw new Error(`Unexpected output: ${JSON.stringify(output).slice(0, 100)}`);
         }
-        apiLog(`[${reqId}] OpenAI OK ${brief.id}`, { b64Len: b64.length });
 
-        const buffer = Buffer.from(b64, "base64");
+        const resp = await fetch(imageUrl);
+        if (!resp.ok) throw new Error(`Failed to fetch generated image: ${resp.status}`);
+        const buffer = Buffer.from(await resp.arrayBuffer());
         const watermarked = await applyWatermark(buffer, false);
         const finalB64 = watermarked.toString("base64");
-        apiLog(`[${reqId}] Done ${brief.id}`, { finalSize: finalB64.length });
-
         return { style: brief.id, url: `data:image/jpeg;base64,${finalB64}` };
       })
     );
 
     const generatedPortraits = results.map((result, index) => {
       if (result.status === "fulfilled") {
-        return { id: `portrait-${index}`, style: result.value.style, url: result.value.url, status: "completed" as const };
+        return {
+          id: `portrait-${index}`,
+          style: result.value.style,
+          url: result.value.url,
+          status: "completed" as const,
+        };
       }
       const reason = result.reason?.message || "Generation failed.";
       apiError(`[${reqId}] Portrait ${index} failed`, { error: reason.slice(0, 200) });
-      return { id: `portrait-${index}`, style: briefs[index]?.id || "unknown", url: "", status: "error" as const, error: reason };
+      return {
+        id: `portrait-${index}`,
+        style: briefs[index]?.id || "unknown",
+        url: "",
+        status: "error" as const,
+        error: reason,
+      };
     });
 
-    const successCount = generatedPortraits.filter((p) => p.status === "completed").length;
-    apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, success: successCount, failed: generatedPortraits.length - successCount });
+    const okCount = generatedPortraits.filter((p) => p.status === "completed").length;
+    apiLog(`[${reqId}] Done`, { total: generatedPortraits.length, ok: okCount });
 
     await prisma.portraitSessionRecord.update({
       where: { id: portraitSession.id },
@@ -155,7 +171,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Generation failed";
     apiError(`[${reqId}] Catch`, { message: msg });
-    console.error("Generation error:", error);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
