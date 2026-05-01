@@ -12,24 +12,40 @@ export async function GET() {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // Find the most recent session for this user
-    const latestSession = await prisma.portraitSessionRecord.findFirst({
+    // Aggregate ALL session portraits into one library
+    const allSessions = await prisma.portraitSessionRecord.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
     });
 
-    let portraits: any[] = [];
-    let refImages: string[] = [];
-
-    if (latestSession) {
-      try { portraits = JSON.parse(latestSession.portraits || "[]"); } catch {}
-      try { refImages = JSON.parse(latestSession.images || "[]"); } catch {}
+    // Collect all portraits from all sessions, deduplicate by id
+    const seen = new Set<string>();
+    const allPortraits: any[] = [];
+    for (const s of allSessions) {
+      try {
+        const portraits = JSON.parse(s.portraits || "[]");
+        for (const p of portraits) {
+          if (p && !seen.has(p.id)) {
+            seen.add(p.id);
+            allPortraits.push(p);
+          }
+        }
+      } catch {}
     }
 
+    // Also load the library field if it exists (from save-library endpoint)
+    let libraryPortraits: any[] = [];
+    const librarySession = allSessions.find((s) => s.id === "library");
+    if (librarySession) {
+      try { libraryPortraits = JSON.parse(librarySession.portraits || "[]"); } catch {}
+    }
+
+    // Merge: library takes precedence (it has the user's curated set)
+    const merged = libraryPortraits.length > 0 ? libraryPortraits : allPortraits;
+
     return NextResponse.json({
-      sessionId: latestSession?.id || null,
-      portraits,
-      refImages,
+      sessionId: allSessions[0]?.id || null,
+      portraits: merged,
       credits: user.credits,
     });
   } catch (error) {

@@ -39,9 +39,9 @@ interface PortraitStore {
   clearUploadedImages: () => void;
   addToWorkbench: (types: string[]) => void;
   updateWorkbenchPortrait: (id: string, u: Partial<PortraitImage>) => void;
-  moveToLibrary: (id: string) => void;
+  moveToLibrary: (id: string) => Promise<void>;
   dismissFromWorkbench: (id: string) => void;
-  deleteFromLibrary: (id: string) => void;
+  deleteFromLibrary: (id: string) => Promise<void>;
   setShowShareCard: (s: boolean) => void;
   setSessionId: (s: string | null) => void;
   resetWorkbench: () => void;
@@ -121,25 +121,28 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
 
   updateWorkbenchPortrait: (id, u) => set((s) => ({ workbenchPortraits: s.workbenchPortraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
 
-  moveToLibrary: (id) => set((s) => {
+  moveToLibrary: async (id) => {
+    const s = get();
     const found = s.workbenchPortraits.find((p) => p.id === id);
-    if (!found) return s;
-    return {
-      workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id),
-      libraryPortraits: [...s.libraryPortraits, { ...found, status: "completed" }],
-      wbIdx: Math.max(0, s.wbIdx - 1),
-    };
-  }),
+    if (!found) return;
+    const newItem: PortraitImage = { id: found.id, url: found.url, style: found.style, status: "completed" };
+    if (found.error) newItem.error = found.error;
+    const updatedLibrary = [...s.libraryPortraits, newItem];
+    set({ workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), libraryPortraits: updatedLibrary, wbIdx: Math.max(0, s.wbIdx - 1) });
+    try { await fetch("/api/library/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ portraits: updatedLibrary }) }); } catch {}
+  },
 
   dismissFromWorkbench: (id) => set((s) => {
     const idx = s.workbenchPortraits.findIndex((p) => p.id === id);
     return { workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), wbIdx: Math.max(0, Math.min(idx, s.wbIdx - 1)) };
   }),
 
-  deleteFromLibrary: (id) => set((s) => {
-    const idx = s.libraryPortraits.findIndex((p) => p.id === id);
-    return { libraryPortraits: s.libraryPortraits.filter((p) => p.id !== id), libIdx: Math.max(0, Math.min(idx, s.libIdx - 1)) };
-  }),
+  deleteFromLibrary: async (id) => {
+    const s = get();
+    const updatedLibrary = s.libraryPortraits.filter((p) => p.id !== id);
+    set({ libraryPortraits: updatedLibrary, libIdx: Math.max(0, Math.min(s.libraryPortraits.findIndex((p) => p.id === id), s.libIdx - 1)) });
+    try { await fetch("/api/library/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); } catch {}
+  },
 
   setShowShareCard: (s) => set({ showShareCard: s }),
   setSessionId: (s) => set({ sessionId: s }),
