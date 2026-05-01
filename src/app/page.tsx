@@ -17,12 +17,13 @@ import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
 import { usePortraitStore } from "@/lib/store";
 
-function fileToBase64(file: File): Promise<string> {
+function fileToBase64(file: File, timeout = 10000): Promise<string> {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("File read timeout")), timeout);
     const r = new FileReader();
+    r.onload = () => { clearTimeout(timer); resolve(r.result as string); };
+    r.onerror = () => { clearTimeout(timer); reject(r.error); };
     r.readAsDataURL(file);
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
   });
 }
 

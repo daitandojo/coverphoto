@@ -51,8 +51,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
   return (
     <AnimatePresence>
-      {phase !== "exit" || true ? (
-        <motion.div
+      <motion.div
           key="splash"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -77,9 +76,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             }}
             transition={{ duration: 0.8, delay: 1.2 }}
             className="absolute bottom-[35%] h-px bg-[#C8B99A]"
-          />
-        </motion.div>
-      ) : null}
+        />
+      </motion.div>
     </AnimatePresence>
   );
 }
