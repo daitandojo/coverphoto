@@ -65,7 +65,15 @@ export default function Workbench({ onGenerate }: { onGenerate: () => void }) {
 
       {/* CENTER */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 min-h-0 overflow-y-auto">
-        <div className="flex flex-col items-center justify-center gap-4 w-full max-w-md">
+        <div className="flex flex-col items-center justify-center gap-3 w-full max-w-md">
+          <motion.p
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase"
+            style={{ fontFamily: "'DM Mono', monospace" }}
+          >
+            Workbench
+          </motion.p>
           <GenerateCTA onGenerate={onGenerate} />
           <PortraitGallery />
           {showShareCard && <ShareCard />}
