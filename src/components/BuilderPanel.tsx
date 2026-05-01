@@ -2,11 +2,18 @@
 
 import { motion } from "framer-motion";
 import { BRIEFS } from "@/lib/prompts";
+import { SPECIALTIES, type Specialty } from "@/lib/specialties";
 import { usePortraitStore } from "@/lib/store";
 
 export default function BuilderPanel() {
-  const { typeCounters, incrementType, decrementType, totalSelected, promptEditEnabled, setPromptEditEnabled, customPrompts, setCustomPrompts } = usePortraitStore();
+  const {
+    typeCounters, incrementType, decrementType,
+    specialCounters, incrementSpecial, decrementSpecial, specialFields, setSpecialField,
+    totalSelected, promptEditEnabled, setPromptEditEnabled, customPrompts, setCustomPrompts,
+  } = usePortraitStore();
   const total = totalSelected();
+  const hasTypes = Object.values(typeCounters).some((v) => v > 0);
+  const hasSpecials = Object.values(specialCounters).some((v) => v > 0);
 
   return (
     <div className="space-y-3 flex flex-col h-full">
@@ -15,61 +22,114 @@ export default function BuilderPanel() {
         <p className="text-xs text-[#C8B99A] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""} chosen</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="grid grid-cols-1 gap-1">
-          {BRIEFS.map((brief, i) => {
-            const count = typeCounters[brief.id] || 0;
-            const active = count > 0;
-            return (
-              <motion.div
-                key={brief.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.015 }}
-                whileHover={{ scale: 1.015 }}
-                className={`relative rounded-lg border transition-all cursor-pointer ${
-                  active
-                    ? "border-[#C8B99A] bg-[rgba(200,185,154,0.06)]"
-                    : "border-white/10 hover:border-white/25 bg-transparent"
-                }`}
-                onClick={() => (active ? decrementType(brief.id) : incrementType(brief.id))}
-              >
-                {active && <><span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" /></>}
-                <div className="flex items-center justify-between p-2">
-                  <div className="flex-1 min-w-0 mr-2">
-                    <p className="text-sm text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.name}</p>
-                    <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.tagline}</p>
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
+        {/* Standard types */}
+        <div>
+          <p className="text-[9px] tracking-[0.25em] text-[rgba(240,237,232,0.2)] uppercase mb-1.5" style={{ fontFamily: "'DM Mono', monospace" }}>Standards</p>
+          <div className="grid grid-cols-1 gap-1">
+            {BRIEFS.map((brief, i) => {
+              const count = typeCounters[brief.id] || 0;
+              const active = count > 0;
+              return (
+                <motion.div key={brief.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.008 }}
+                  whileHover={{ scale: 1.012 }}
+                  className={`relative rounded-lg border transition-all cursor-pointer ${active ? "border-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 hover:border-white/25"}`}
+                  onClick={() => (active ? decrementType(brief.id) : incrementType(brief.id))}
+                >
+                  {active && <><span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" /></>}
+                  <div className="flex items-center justify-between p-2">
+                    <div className="flex-1 min-w-0 mr-2">
+                      <p className="text-sm text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.name}</p>
+                      <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{brief.tagline}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <motion.button onClick={(e) => { e.stopPropagation(); decrementType(brief.id); }} whileTap={{ scale: 0.85 }}
+                        className={`w-7 h-7 rounded-md border text-xs transition-all ${active ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40" : "border-white/5 text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>−</motion.button>
+                      <span className={`w-5 text-center text-sm tabular-nums ${active ? "text-[#F0EDE8]" : "text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
+                      <motion.button onClick={(e) => { e.stopPropagation(); incrementType(brief.id); }} whileTap={{ scale: 0.85 }}
+                        className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <motion.button
-                      onClick={(e) => { e.stopPropagation(); decrementType(brief.id); }}
-                      whileTap={{ scale: 0.85 }}
-                      className={`w-7 h-7 rounded-md border text-xs transition-all ${
-                        active
-                          ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A]"
-                          : "border-white/5 text-[rgba(240,237,232,0.15)] cursor-default"
-                      }`}
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >−</motion.button>
-                    <span className={`w-5 text-center text-sm tabular-nums ${active ? "text-[#F0EDE8]" : "text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
-                    <motion.button
-                      onClick={(e) => { e.stopPropagation(); incrementType(brief.id); }}
-                      whileTap={{ scale: 0.85 }}
-                      className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >+</motion.button>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Specialties */}
+        <div>
+          <p className="text-[9px] tracking-[0.25em] text-[#C8B99A]/60 uppercase mb-1.5" style={{ fontFamily: "'DM Mono', monospace" }}>Specialties</p>
+          <div className="grid grid-cols-1 gap-1">
+            {SPECIALTIES.map((spec, i) => {
+              const count = specialCounters[spec.id] || 0;
+              const active = count > 0;
+              const config = specialFields[spec.id] || {};
+              return (
+                <motion.div key={spec.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.008 }}
+                  whileHover={{ scale: 1.012 }}
+                  className={`relative rounded-lg border transition-all ${active ? "border-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 hover:border-white/25"}`}
+                >
+                  <div className="flex items-center justify-between p-2 cursor-pointer" onClick={() => (active ? decrementSpecial(spec.id) : incrementSpecial(spec.id))}>
+                    {active && <><span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" /></>}
+                    <div className="flex-1 min-w-0 mr-2">
+                      <p className="text-sm text-[#C8B99A] leading-tight" style={{ fontFamily: "'DM Mono', monospace" }}>{spec.name}</p>
+                      <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-tight mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{spec.tagline} · {spec.cost}cr</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <motion.button onClick={(e) => { e.stopPropagation(); decrementSpecial(spec.id); }} whileTap={{ scale: 0.85 }}
+                        className={`w-7 h-7 rounded-md border text-xs transition-all ${active ? "border-white/15 text-[rgba(240,237,232,0.5)] hover:border-[#C8B99A]/40" : "border-white/5 text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>−</motion.button>
+                      <span className={`w-5 text-center text-sm tabular-nums ${active ? "text-[#F0EDE8]" : "text-[rgba(240,237,232,0.15)]"}`} style={{ fontFamily: "'DM Mono', monospace" }}>{count}</span>
+                      <motion.button onClick={(e) => { e.stopPropagation(); incrementSpecial(spec.id); }} whileTap={{ scale: 0.85 }}
+                        className="w-7 h-7 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+
+                  {/* Config fields — shown when active */}
+                  {active && spec.fields.length > 0 && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="px-2 pb-2 space-y-2 border-t border-white/5 pt-2">
+                      {spec.fields.map((f) => {
+                        if (f.type === "text") {
+                          return (
+                            <div key={f.key}>
+                              <p className="text-[9px] text-[rgba(240,237,232,0.3)] mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{f.label}</p>
+                              <input value={config[f.key] || ""} onChange={(e) => setSpecialField(spec.id, f.key, e.target.value)}
+                                placeholder={f.placeholder || ""}
+                                className="w-full text-[10px] bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg p-1.5 text-[rgba(240,237,232,0.6)] focus:outline-none focus:border-[#C8B99A]/40"
+                                style={{ fontFamily: "'DM Mono', monospace" }} />
+                            </div>
+                          );
+                        }
+                        if (f.type === "select" || f.type === "radio") {
+                          return (
+                            <div key={f.key}>
+                              <p className="text-[9px] text-[rgba(240,237,232,0.3)] mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{f.label}</p>
+                              <div className="flex flex-wrap gap-1">
+                                {(f.options || []).map((opt) => (
+                                  <button key={opt.value}
+                                    onClick={() => setSpecialField(spec.id, f.key, opt.value)}
+                                    className={`text-[9px] px-2 py-1 rounded border transition-all ${config[f.key] === opt.value ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60"}`}
+                                    style={{ fontFamily: "'DM Mono', monospace" }}>{opt.label}</button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </motion.div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
+      {/* Footer */}
       <div className="flex-shrink-0 space-y-2 pt-2 border-t border-white/5">
         <div className="flex items-center justify-between">
           <span className="text-xs text-[rgba(240,237,232,0.4)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-            {total} portrait{total !== 1 ? "s" : ""} · {total} credit{total !== 1 ? "s" : ""}
+            {total} portrait{total !== 1 ? "s" : ""}
           </span>
           <button onClick={() => setPromptEditEnabled(!promptEditEnabled)}
             className={`text-[10px] px-2 py-1 rounded border transition-all uppercase tracking-wider ${promptEditEnabled ? "border-[#C8B99A] text-[#C8B99A]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/70"}`}

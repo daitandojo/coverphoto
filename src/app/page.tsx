@@ -67,6 +67,8 @@ export default function Home() {
         body: JSON.stringify({
           images: imagesBase64,
           typeCounters: usePortraitStore.getState().typeCounters,
+          specialConfigs: usePortraitStore.getState().specialCounters,
+          specialFields: usePortraitStore.getState().specialFields,
           customPrompts: promptEditEnabled ? customPrompts : undefined,
         }),
       });

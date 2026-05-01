@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
 import { getBriefs } from "@/lib/prompts";
+import { getSpecialty } from "@/lib/specialties";
 import Replicate from "replicate";
 
 const LOG = "[CoverPhoto:API]";
@@ -37,26 +38,48 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
     apiLog(`[${reqId}] User`, { credits: user.credits });
 
-    const { images, typeCounters, customPrompts } = await request.json();
+    const { images, typeCounters, customPrompts, specialConfigs, specialFields } = await request.json();
     if (!images?.length || images.length < 2) {
       return NextResponse.json({ error: "At least 2 reference images required" }, { status: 400 });
     }
 
-    // Expand typeCounters into ordered types list
-    const orderedTypes = Object.entries(typeCounters || {})
-      .flatMap(([type, cnt]) => Array(cnt as number).fill(type));
-    if (orderedTypes.length === 0) {
-      return NextResponse.json({ error: "No portrait types selected" }, { status: 400 });
+    // Expand standard types
+    const orderedTypes = Object.entries(typeCounters || {}).flatMap(([type, cnt]) => Array(cnt as number).fill(type));
+
+    // Expand specialties
+    const orderedSpecials: { id: string; config: Record<string, string> }[] = [];
+    if (specialConfigs) {
+      Object.entries(specialConfigs).forEach(([sid, cnt]) => {
+        for (let i = 0; i < (cnt as number); i++) {
+          orderedSpecials.push({ id: sid, config: specialFields?.[sid] || {} });
+        }
+      });
     }
 
+    const total = orderedTypes.length + orderedSpecials.length;
+    if (total === 0) return NextResponse.json({ error: "No portrait types selected" }, { status: 400 });
+
     const promptEditEnabled = customPrompts && Object.keys(customPrompts).length > 0;
-    const creditCost = orderedTypes.length + (promptEditEnabled ? 2 : 0);
+
+    // Calculate credit cost: standard types = 1 each, specialties use their own cost
+    const specCost = orderedSpecials.reduce((sum, s) => {
+      const spec = getSpecialty(s.id);
+      return sum + (spec ? spec.cost : 4);
+    }, 0);
+    const creditCost = orderedTypes.length + specCost + (promptEditEnabled ? 2 : 0);
     if (user.credits < creditCost) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
     const briefs = getBriefs(orderedTypes);
-    if (!briefs.length) return NextResponse.json({ error: "No valid portrait types" }, { status: 400 });
+    const allBriefs: { id: string; prompt: string }[] = [
+      ...briefs.map((b) => ({ id: b.id, prompt: customPrompts?.[b.id] || b.prompt })),
+      ...orderedSpecials.map((s) => {
+        const spec = getSpecialty(s.id);
+        return { id: s.id, prompt: spec ? spec.generatePrompt(s.config) : `Portrait: ${s.id}` };
+      }),
+    ];
+    if (!allBriefs.length) return NextResponse.json({ error: "No valid portrait types" }, { status: 400 });
 
     const email = session.user!.email!;
     const refUrls = await Promise.all(images.slice(0, 3).map((img: string, i: number) => uploadRef(img, email, i)));
@@ -68,8 +91,8 @@ export async function POST(request: Request) {
       id: string; style: string; url: string; status: "completed" | "error"; error?: string;
     }> = [];
 
-    async function generateOne(brief: (typeof briefs)[0], i: number) {
-      const prompt = customPrompts?.[brief.id] || brief.prompt;
+    async function generateOne(brief: (typeof allBriefs)[0], i: number) {
+      const prompt = brief.prompt;
       const start = Date.now();
 
       try {
@@ -155,7 +178,7 @@ export async function POST(request: Request) {
     }
 
     // Semaphore — run 2 at a time
-    const queue = briefs.map((b, i) => ({ brief: b, index: i }));
+    const queue = allBriefs.map((b, i) => ({ brief: b, index: i }));
     for (let i = 0; i < queue.length; i += CONCURRENCY) {
       const batch = queue.slice(i, i + CONCURRENCY);
       await Promise.all(batch.map(({ brief, index }) => generateOne(brief, index)));
