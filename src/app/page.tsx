@@ -16,6 +16,7 @@ import ConfettiBurst from "@/components/ConfettiBurst";
 import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
 import { usePortraitStore } from "@/lib/store";
+import { log, error as logError, apiLog } from "@/lib/logger";
 
 function fileToBase64(file: File, timeout = 10000): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -73,21 +74,27 @@ export default function Home() {
   };
 
   const handleGenerate = useCallback(async () => {
+    apiLog("GENERATE START", { count: portraitCount, types: selectedTypes, images: uploadedImages.length });
+
     if (uploadedImages.length < 2) {
+      log("GENERATE ABORT: < 2 images");
       toast("Please upload at least 2 reference images", { className: "toast-custom", icon: "◎" });
       return;
     }
     const creditCost = portraitCount + (promptEditEnabled ? 2 : 0);
-    if (credits < creditCost) { setShowBuyCredits(true); return; }
-    if (!session) { signIn("google"); return; }
+    if (credits < creditCost) { log("GENERATE ABORT: insufficient credits"); setShowBuyCredits(true); return; }
+    if (!session) { log("GENERATE ABORT: no session"); signIn("google"); return; }
 
     setGenerating(true);
     usePortraitStore.getState().startGeneration();
 
     try {
-      // Convert files to base64 so the server can read them
+      // Convert files to base64
+      apiLog("FILE_TO_BASE64 start", { files: uploadedImages.length });
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
+      apiLog("FILE_TO_BASE64 done", { sizes: imagesBase64.map((s) => s.length) });
 
+      apiLog("FETCH /api/generate start", { payload_size: JSON.stringify({ images: imagesBase64, count: portraitCount, selectedTypes }).length });
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,43 +105,93 @@ export default function Home() {
           customPrompts: promptEditEnabled ? customPrompts : undefined,
         }),
       });
+      apiLog("FETCH /api/generate done", { status: res.status, ok: res.ok });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        const errBody = await res.json().catch(() => ({ error: "Unknown error" }));
+        log("GENERATE API ERROR", { status: res.status, error: errBody.error });
         if (res.status === 402) { setShowBuyCredits(true); return; }
-        throw new Error(err.error || `Generation failed (${res.status})`);
+        throw new Error(errBody.error || `Generation failed (${res.status})`);
       }
 
       const data = await res.json();
-      data.portraits.forEach((p: any) =>
+      apiLog("GENERATE RESPONSE", { portraits: data.portraits?.length, creditsRemaining: data.creditsRemaining });
+      data.portraits?.forEach((p: any, i: number) => {
+        log(`PORTRAIT ${i}:`, { id: p.id, status: p.status, hasUrl: !!p.url, error: p.error });
+      });
+
+      data.portraits?.forEach((p: any) =>
         updatePortrait(p.id, { url: p.url, status: p.status, error: p.error })
       );
-      setCredits(data.creditsRemaining);
-      setSessionId(data.sessionId);
+      if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
+      setSessionId(data.sessionId || null);
 
       if (isFirstRun) {
+        apiLog("FIRST RUN: confetti");
         setShowConfetti(true);
         completeFirstRun();
         setTimeout(() => setShowConfetti(false), 3000);
       }
-      setShowShareCard(true);
 
-      // Show errors per portrait
-      const errors = data.portraits.filter((p: any) => p.status === "error");
+      const errors = data.portraits?.filter((p: any) => p.status === "error") || [];
       if (errors.length > 0) {
-        toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed — tap to retry`, {
-          className: "toast-custom",
-          icon: "⚠",
-          duration: 5000,
+        const msgs = errors.map((e: any) => e.error).filter(Boolean).join("; ");
+        logError("PORTRAIT ERRORS", { count: errors.length, messages: msgs });
+        toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed — ${msgs.slice(0, 80)}`, {
+          className: "toast-custom", icon: "⚠", duration: 6000,
         });
+      } else {
+        apiLog("ALL PORTRAITS SUCCESS");
+        setShowShareCard(true);
       }
     } catch (err: any) {
+      logError("GENERATE CATCH", { message: err.message, stack: err.stack?.split("\n")[0] });
       toast(err.message || "Generation failed.", { className: "toast-custom", icon: "⚠" });
       usePortraitStore.getState().resetPortraits();
     } finally {
+      apiLog("GENERATE END");
       setGenerating(false);
     }
-  }, [uploadedImages, portraitCount, selectedTypes, promptEditEnabled, customPrompts, credits, session, isFirstRun, updatePortrait, setCredits, setSessionId, setShowBuyCredits, setShowShareCard, completeFirstRun]);
+  }, [uploadedImages, portraitCount, selectedTypes, promptEditEnabled, customPrompts, credits, session, isFirstRun, updatePortrait, setCredits, setSessionId, setShowBuyCredits, setShowShareCard, completeFirstRun, setSessionId]);
+
+  // Retry a single portrait by regenerating via API
+  const handleRetryOne = useCallback(async (style: string) => {
+    apiLog("RETRY_ONE start", { style });
+    if (credits < 1) { setShowBuyCredits(true); return; }
+
+    setGenerating(true);
+    usePortraitStore.getState().startGeneration(); // reset all to generating
+
+    try {
+      const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: imagesBase64,
+          count: 1,
+          selectedTypes: [style],
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `Retry failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      apiLog("RETRY_ONE done", { portraits: data.portraits?.length });
+      data.portraits?.forEach((p: any) =>
+        updatePortrait(p.id, { url: p.url, status: p.status, error: p.error })
+      );
+      if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
+    } catch (err: any) {
+      logError("RETRY_ONE catch", { message: err.message });
+      toast(err.message || "Retry failed.", { className: "toast-custom", icon: "⚠" });
+    } finally {
+      setGenerating(false);
+    }
+  }, [credits, uploadedImages, updatePortrait, setCredits, setShowBuyCredits]);
 
   return (
     <>
@@ -249,7 +306,7 @@ export default function Home() {
                     <GenerateCTA onGenerate={handleGenerate} />
                   </div>
 
-                  <PortraitGallery />
+                <PortraitGallery onRetry={handleRetryOne} />
                   {showShareCard && <ShareCard />}
                 </div>
 

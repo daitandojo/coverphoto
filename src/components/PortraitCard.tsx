@@ -83,13 +83,22 @@ interface PortraitCardProps {
   portrait: PortraitImage;
   index: number;
   large?: boolean;
+  onRetry?: (style: string) => void;
 }
 
-export default function PortraitCard({ portrait, index, large }: PortraitCardProps) {
+export default function PortraitCard({ portrait, index, large, onRetry }: PortraitCardProps) {
   const { redoPortrait, credits } = usePortraitStore();
   const [showOverlay, setShowOverlay] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [materializing, setMaterializing] = useState(true);
+
+  const handleRetry = useCallback(() => {
+    if (onRetry) {
+      onRetry(portrait.style);
+    } else {
+      redoPortrait(portrait.id);
+    }
+  }, [onRetry, portrait.style, portrait.id, redoPortrait]);
 
   useEffect(() => {
     if (portrait.status === "completed" && portrait.url) {
@@ -183,7 +192,7 @@ export default function PortraitCard({ portrait, index, large }: PortraitCardPro
         <div className="absolute inset-0 flex flex-col items-center justify-center border-2 border-red-500/30 rounded-xl">
           <span className="text-red-400 text-xs mb-2">Generation failed</span>
           <motion.button
-            onClick={() => redoPortrait(portrait.id)}
+            onClick={handleRetry}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="px-3 py-1 rounded-md border border-red-500/30 text-red-400 text-xs"
@@ -228,7 +237,7 @@ export default function PortraitCard({ portrait, index, large }: PortraitCardPro
                     ↓ Save
                   </button>
                   <button
-                    onClick={() => redoPortrait(portrait.id)}
+                    onClick={handleRetry}
                     disabled={credits < 1}
                     className="flex-1 py-1.5 rounded-lg border border-white/10 text-xs text-white/70 hover:border-white/30 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                     style={{ fontFamily: "'DM Mono', monospace" }}
