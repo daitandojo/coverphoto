@@ -16,6 +16,7 @@ interface PortraitStore {
   showShareCard: boolean;
   sessionId: string | null;
   showBuyCredits: boolean;
+  portraitIdx: number;
 
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
@@ -23,7 +24,6 @@ interface PortraitStore {
   rightPanelPinned: boolean;
 
   typeCounters: TypeCounter;
-  generatedCounts: TypeCounter;
   promptEditEnabled: boolean;
   customPrompts: Record<string, string>;
   specialCounters: TypeCounter;
@@ -34,13 +34,15 @@ interface PortraitStore {
   addUploadedImage: (img: UploadedImage) => void;
   removeUploadedImage: (id: string) => void;
   clearUploadedImages: () => void;
-  startGeneration: () => void;
+  generatePlaceholders: (types: string[]) => void;
   updatePortrait: (id: string, u: Partial<PortraitImage>) => void;
+  removePortrait: (id: string) => void;
   setShowShareCard: (s: boolean) => void;
   setSessionId: (s: string | null) => void;
   resetPortraits: () => void;
   redoPortrait: (id: string) => void;
   setShowBuyCredits: (s: boolean) => void;
+  setPortraitIdx: (i: number) => void;
 
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
@@ -55,15 +57,13 @@ interface PortraitStore {
   selectOneOfEach: () => void;
   totalSelected: () => number;
   selectedTypesList: () => string[];
-  addPlaceholder: (id: string) => void;
   setPromptEditEnabled: (e: boolean) => void;
   setCustomPrompts: (p: Record<string, string>) => void;
 
   incrementSpecial: (id: string) => void;
   decrementSpecial: (id: string) => void;
   setSpecialField: (id: string, key: string, value: string) => void;
-  loadSession: (data: { portraits: any[]; refImages: string[]; sessionId: string | null; credits: number }) => void;
-  removeLastPlaceholder: (style: string) => void;
+  loadSession: (data: { portraits: any[]; sessionId: string | null; credits: number }) => void;
 }
 
 function makeTC(): TypeCounter {
@@ -73,12 +73,7 @@ function makeTC(): TypeCounter {
   return c;
 }
 
-function makeGenTC(): TypeCounter {
-  const c: TypeCounter = {};
-  BRIEFS.forEach((b) => (c[b.id] = 0));
-  SPECIALTIES.forEach((s) => (c[s.id] = 0));
-  return c;
-}
+let globalIdCounter = Date.now();
 
 export const usePortraitStore = create<PortraitStore>((set, get) => ({
   credits: 0,
@@ -89,6 +84,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   showShareCard: false,
   sessionId: null,
   showBuyCredits: false,
+  portraitIdx: 0,
 
   leftPanelOpen: true,
   rightPanelOpen: true,
@@ -96,7 +92,6 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   rightPanelPinned: true,
 
   typeCounters: makeTC(),
-  generatedCounts: makeGenTC(),
   promptEditEnabled: false,
   customPrompts: {},
   specialCounters: makeTC(),
@@ -109,31 +104,28 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   removeUploadedImage: (id) => set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })),
   clearUploadedImages: () => set({ uploadedImages: [] }),
 
-  startGeneration: () => {
-    const types = get().selectedTypesList();
-    const specs = Object.entries(get().specialCounters).flatMap(([k, v]) => Array(v).fill(k));
-    const all = [...types, ...specs];
-    set({
-      isGenerating: true, generatedCounts: makeGenTC(),
-      portraits: all.map((t, i) => ({ id: `portrait-${i}`, url: "", status: "generating" as const, style: t as any })),
-    });
+  generatePlaceholders: (types) => {
+    const placeholders: PortraitImage[] = types.map((t) => ({
+      id: `portrait-${globalIdCounter++}`,
+      url: "",
+      status: "generating" as const,
+      style: t as any,
+    }));
+    set((s) => ({
+      isGenerating: true,
+      portraits: [...s.portraits, ...placeholders],
+    }));
   },
 
-  updatePortrait: (id, u) => {
-    set((s) => ({
-      portraits: s.portraits.map((p) => (p.id === id ? { ...p, ...u } : p)),
-    }));
-    // Track generated count per type
-    if (u.status === "completed" && u.style) {
-      set((s) => ({ generatedCounts: { ...s.generatedCounts, [u.style as string]: (s.generatedCounts[u.style as string] || 0) + 1 } }));
-    }
-  },
+  updatePortrait: (id, u) => set((s) => ({ portraits: s.portraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
+  removePortrait: (id) => set((s) => ({ portraits: s.portraits.filter((p) => p.id !== id) })),
 
   setShowShareCard: (s) => set({ showShareCard: s }),
   setSessionId: (s) => set({ sessionId: s }),
-  resetPortraits: () => set({ portraits: [], isGenerating: false, generatedCounts: makeGenTC() }),
+  resetPortraits: () => set({ portraits: [], isGenerating: false }),
   redoPortrait: (id) => set((s) => ({ credits: s.credits - 1, portraits: s.portraits.map((p) => (p.id === id ? { ...p, status: "generating" as const, url: "" } : p)) })),
   setShowBuyCredits: (s) => set({ showBuyCredits: s }),
+  setPortraitIdx: (i) => set({ portraitIdx: i }),
 
   toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen, leftPanelPinned: !s.leftPanelOpen ? true : s.leftPanelPinned })),
   toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen, rightPanelPinned: !s.rightPanelOpen ? true : s.rightPanelPinned })),
@@ -142,40 +134,9 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   pinLeftPanel: (p) => set({ leftPanelPinned: p }),
   pinRightPanel: (p) => set({ rightPanelPinned: p }),
 
-  incrementType: (id) => {
-    const s = get();
-    const hadExisting = s.portraits.length > 0;
-    set((st) => ({ typeCounters: { ...st.typeCounters, [id]: (st.typeCounters[id] || 0) + 1 } }));
-    if (hadExisting) {
-      get().addPlaceholder(id);
-    }
-  },
-
-  decrementType: (id) => {
-    const s = get();
-    const current = s.typeCounters[id] || 0;
-    const generated = s.generatedCounts[id] || 0;
-    if (current <= generated) return; // cannot go below already-generated count
-    const newCount = Math.max(0, current - 1);
-    set((st) => ({ typeCounters: { ...st.typeCounters, [id]: newCount } }));
-    // If we still have placeholders, remove the last one
-    if (newCount > generated) {
-      get().removeLastPlaceholder(id);
-    }
-  },
-
-  addPlaceholder: (styleId) => {
-    set((s) => ({
-      portraits: [...s.portraits, {
-        id: `portrait-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        url: "",
-        status: "pending" as const,
-        style: styleId as any,
-      }],
-    }));
-  },
-
-  resetCounters: () => set({ typeCounters: makeTC(), specialCounters: makeTC(), specialFields: {}, generatedCounts: makeGenTC() }),
+  incrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: (s.typeCounters[id] || 0) + 1 } })),
+  decrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: Math.max(0, (s.typeCounters[id] || 0) - 1) } })),
+  resetCounters: () => set({ typeCounters: makeTC(), specialCounters: makeTC(), specialFields: {} }),
   selectOneOfEach: () => {
     const tc = makeTC();
     BRIEFS.forEach((b) => (tc[b.id] = 1));
@@ -187,55 +148,26 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setCustomPrompts: (p) => set({ customPrompts: p }),
 
   incrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: (s.specialCounters[id] || 0) + 1 } })),
-  decrementSpecial: (id) => {
-    const s = get();
-    const current = s.specialCounters[id] || 0;
-    const generated = s.generatedCounts[id] || 0;
-    if (current <= generated) return;
-    const newCount = Math.max(0, current - 1);
-    set((st) => ({ specialCounters: { ...st.specialCounters, [id]: newCount } }));
-    if (newCount > generated) {
-      get().removeLastPlaceholder(id);
-    }
-  },
+  decrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: Math.max(0, (s.specialCounters[id] || 0) - 1) } })),
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
-
-  removeLastPlaceholder: (style: string) => {
-    set((s) => {
-      const copy = [...s.portraits];
-      // Find the last pending portrait of this style and remove it
-      for (let i = copy.length - 1; i >= 0; i--) {
-        if (copy[i].style === style && copy[i].status === "pending") {
-          copy.splice(i, 1);
-          break;
-        }
-      }
-      return { portraits: copy };
-    });
-  },
 
   loadSession: (data) => {
     const portraits: PortraitImage[] = (data.portraits || []).map((p: any, i: number) => ({
       id: p.id || `restored-${i}`,
       url: p.url || "",
       style: p.style || "executive",
-      status: p.status || "completed",
+      status: (p.status === "completed" ? "completed" : p.status === "error" ? "error" : "completed") as any,
       error: p.error,
     }));
-    // Build typeCounters and generatedCounts from loaded portraits
+    // Build typeCounters
     const tc = makeTC();
-    const gc = makeGenTC();
-    portraits.forEach((p) => {
-      if (tc[p.style] !== undefined) tc[p.style] = (tc[p.style] || 0) + 1;
-      if (p.status === "completed" && gc[p.style] !== undefined) gc[p.style] = (gc[p.style] || 0) + 1;
-    });
+    portraits.forEach((p) => { if (tc[p.style] !== undefined) tc[p.style] = (tc[p.style] || 0) + 1; });
     set({
       portraits,
       typeCounters: tc,
-      generatedCounts: gc,
       sessionId: data.sessionId,
       credits: data.credits,
-      showShareCard: portraits.length > 0 && portraits.every((p) => p.status !== "pending"),
+      showShareCard: portraits.length > 0 && portraits.every((p) => p.status !== "pending" && p.status !== "generating"),
     });
   },
 }));

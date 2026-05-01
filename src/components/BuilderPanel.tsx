@@ -2,24 +2,30 @@
 
 import { motion } from "framer-motion";
 import { BRIEFS } from "@/lib/prompts";
-import { SPECIALTIES, type Specialty } from "@/lib/specialties";
+import { SPECIALTIES } from "@/lib/specialties";
 import { usePortraitStore } from "@/lib/store";
 
-export default function BuilderPanel() {
+interface BuilderPanelProps {
+  onGenerate: () => void;
+  canGenerate: boolean;
+  reason: string;
+}
+
+export default function BuilderPanel({ onGenerate, canGenerate, reason }: BuilderPanelProps) {
   const {
     typeCounters, incrementType, decrementType,
     specialCounters, incrementSpecial, decrementSpecial, specialFields, setSpecialField,
-    totalSelected, promptEditEnabled, setPromptEditEnabled, customPrompts, setCustomPrompts,
+    totalSelected, promptEditEnabled, setPromptEditEnabled, customPrompts, setCustomPrompts, credits,
   } = usePortraitStore();
   const total = totalSelected();
   const hasTypes = Object.values(typeCounters).some((v) => v > 0);
-  const hasSpecials = Object.values(specialCounters).some((v) => v > 0);
+  const creditCost = total + (promptEditEnabled ? 2 : 0);
 
   return (
     <div className="space-y-3 flex flex-col h-full">
       <div className="flex-shrink-0">
         <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Portrait Builder</span>
-        <p className="text-xs text-[#C8B99A] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""} chosen</p>
+        <p className="text-xs text-[#C8B99A] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""} to generate</p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
@@ -83,37 +89,28 @@ export default function BuilderPanel() {
                         className="w-6 h-6 rounded-md border border-white/15 text-xs text-[rgba(240,237,232,0.6)] hover:border-[#C8B99A]/40 hover:text-[#C8B99A] transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>+</motion.button>
                     </div>
                   </div>
-
-                  {/* Config fields — shown when active */}
                   {active && spec.fields.length > 0 && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="px-2 pb-2 space-y-2 border-t border-white/5 pt-2">
                       {spec.fields.map((f) => {
-                        if (f.type === "text") {
-                          return (
-                            <div key={f.key}>
-                              <p className="text-[9px] text-[rgba(240,237,232,0.3)] mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{f.label}</p>
-                              <input value={config[f.key] || ""} onChange={(e) => setSpecialField(spec.id, f.key, e.target.value)}
-                                placeholder={f.placeholder || ""}
-                                className="w-full text-[10px] bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg p-1.5 text-[rgba(240,237,232,0.6)] focus:outline-none focus:border-[#C8B99A]/40"
-                                style={{ fontFamily: "'DM Mono', monospace" }} />
+                        if (f.type === "text") return (
+                          <div key={f.key}>
+                            <p className="text-[9px] text-[rgba(240,237,232,0.3)] mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{f.label}</p>
+                            <input value={config[f.key] || ""} onChange={(e) => setSpecialField(spec.id, f.key, e.target.value)} placeholder={f.placeholder || ""}
+                              className="w-full text-[10px] bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg p-1.5 text-[rgba(240,237,232,0.6)] focus:outline-none focus:border-[#C8B99A]/40" style={{ fontFamily: "'DM Mono', monospace" }} />
+                          </div>
+                        );
+                        if (f.type === "select" || f.type === "radio") return (
+                          <div key={f.key}>
+                            <p className="text-[9px] text-[rgba(240,237,232,0.3)] mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{f.label}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(f.options || []).map((opt) => (
+                                <button key={opt.value} onClick={() => setSpecialField(spec.id, f.key, opt.value)}
+                                  className={`text-[9px] px-2 py-1 rounded border transition-all ${config[f.key] === opt.value ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60"}`}
+                                  style={{ fontFamily: "'DM Mono', monospace" }}>{opt.label}</button>
+                              ))}
                             </div>
-                          );
-                        }
-                        if (f.type === "select" || f.type === "radio") {
-                          return (
-                            <div key={f.key}>
-                              <p className="text-[9px] text-[rgba(240,237,232,0.3)] mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{f.label}</p>
-                              <div className="flex flex-wrap gap-1">
-                                {(f.options || []).map((opt) => (
-                                  <button key={opt.value}
-                                    onClick={() => setSpecialField(spec.id, f.key, opt.value)}
-                                    className={`text-[9px] px-2 py-1 rounded border transition-all ${config[f.key] === opt.value ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60"}`}
-                                    style={{ fontFamily: "'DM Mono', monospace" }}>{opt.label}</button>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        }
+                          </div>
+                        );
                         return null;
                       })}
                     </motion.div>
@@ -125,24 +122,46 @@ export default function BuilderPanel() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer with GENERATE */}
       <div className="flex-shrink-0 space-y-2 pt-2 border-t border-white/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[rgba(240,237,232,0.4)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-              {total} portrait{total !== 1 ? "s" : ""}
-            </span>
-            {!Object.values(typeCounters).some((v) => v > 0) && (
-              <button onClick={() => usePortraitStore.getState().selectOneOfEach()}
-                className="text-[9px] px-2 py-0.5 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-colors"
-                style={{ fontFamily: "'DM Mono', monospace" }}>One of Each ✦ (9cr)</button>
-            )}
-          </div>
+        {/* Generate button */}
+        <motion.button
+          onClick={onGenerate}
+          disabled={!canGenerate}
+          whileHover={canGenerate ? { y: -1 } : {}}
+          whileTap={canGenerate ? { scale: 0.98 } : {}}
+          className={`relative w-full py-3 rounded-xl text-center transition-all duration-200 ${
+            canGenerate
+              ? "border border-[#C8B99A] cursor-pointer text-[#C8B99A] bg-[rgba(200,185,154,0.06)] gas-glow"
+              : "border border-white/5 opacity-40 cursor-not-allowed text-[rgba(240,237,232,0.3)]"
+          }`}
+          style={{ fontFamily: "'DM Mono', monospace" }}
+        >
+          <span className="gold-corner top-left" /><span className="gold-corner top-right" />
+          <span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" />
+          <span className="text-sm tracking-widest uppercase">
+            Generate {total} Portrait{total !== 1 ? "s" : ""}
+          </span>
+        </motion.button>
+
+        {/* Reason / credit info */}
+        <p className="text-[10px] text-center text-[rgba(240,237,232,0.25)]" style={{ fontFamily: "'DM Mono', monospace" }}>
+          {reason || <>{creditCost} credit{creditCost !== 1 ? "s" : ""} · {credits} remaining{promptEditEnabled && " · ✦ Custom edits"}</>}
+        </p>
+
+        {/* One of Each */}
+        <div className="flex items-center justify-between pt-1">
+          {!hasTypes && (
+            <button onClick={() => usePortraitStore.getState().selectOneOfEach()}
+              className="text-[9px] px-2 py-0.5 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-colors"
+              style={{ fontFamily: "'DM Mono', monospace" }}>One of Each ✦ (9cr)</button>
+          )}
+          <div className="flex-1" />
           <button onClick={() => setPromptEditEnabled(!promptEditEnabled)}
-            className={`text-[10px] px-2 py-1 rounded border transition-all uppercase tracking-wider ${promptEditEnabled ? "border-[#C8B99A] text-[#C8B99A]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/70"}`}
-            style={{ fontFamily: "'DM Mono', monospace" }}>{promptEditEnabled ? "✦ On" : "✦ Prompts"}
-          </button>
+            className={`text-[9px] px-2 py-0.5 rounded border transition-all uppercase tracking-wider ${promptEditEnabled ? "border-[#C8B99A] text-[#C8B99A]" : "border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/70"}`}
+            style={{ fontFamily: "'DM Mono', monospace" }}>{promptEditEnabled ? "✦ On" : "✦ Prompts"}</button>
         </div>
+
         {promptEditEnabled && (
           <div className="space-y-2 max-h-[140px] overflow-y-auto">
             {BRIEFS.filter((b) => (typeCounters[b.id] || 0) > 0).map((brief) => (

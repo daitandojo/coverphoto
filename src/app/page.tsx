@@ -98,7 +98,12 @@ export default function Home() {
     }
 
     setGenerating(true);
-    usePortraitStore.getState().startGeneration();
+    // Build ordered types list and create placeholders
+    const allTypes = [
+      ...Object.entries(usePortraitStore.getState().typeCounters).flatMap(([k, v]) => Array(v).fill(k)),
+      ...Object.entries(usePortraitStore.getState().specialCounters).flatMap(([k, v]) => Array(v).fill(k)),
+    ];
+    usePortraitStore.getState().generatePlaceholders(allTypes);
 
     try {
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
@@ -126,6 +131,8 @@ export default function Home() {
       }
       if (errors.length > 0) { toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed`, { className: "toast-custom", icon: "⚠", duration: 6000 }); }
       else { setShowShareCard(true); }
+      // Reset all counters after generation
+      usePortraitStore.getState().resetCounters();
     } catch (err: any) {
       toast(err.message || "Generation failed.", { className: "toast-custom", icon: "⚠" });
       usePortraitStore.getState().resetPortraits();
@@ -230,7 +237,25 @@ export default function Home() {
             )}
 
             {/* WORKBENCH */}
-            {status === "authenticated" && <Workbench onGenerate={handleGenerate} onGeneratePending={handleGeneratePending} onRetry={handleRetryOne} />}
+            {status === "authenticated" && <Workbench
+              onGenerate={handleGenerate}
+              onGeneratePending={handleGeneratePending}
+              onRetry={handleRetryOne}
+              canGenerate={(() => {
+                const t = totalSelected();
+                const r = uploadedImages.length >= 2;
+                const c = credits >= t + (promptEditEnabled ? 2 : 0);
+                return t >= 1 && r && c && !generating;
+              })()}
+              genReason={(() => {
+                const t = totalSelected();
+                const missing = 2 - uploadedImages.length;
+                if (t < 1) return "Select portrait types";
+                if (uploadedImages.length < 2) return `${missing} more reference image${missing !== 1 ? "s" : ""} needed`;
+                if (credits < t + (promptEditEnabled ? 2 : 0)) return "Insufficient credits";
+                return "";
+              })()}
+            />}
 
             {/* Loading */}
             {status === "loading" && <main className="flex-1 flex items-center justify-center"><div className="shimmer w-8 h-8 rounded-full" /></main>}
