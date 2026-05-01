@@ -12,14 +12,24 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
     usePortraitStore();
 
   const creditCost = portraitCount + (promptEditEnabled ? 2 : 0);
+  const missingImages = 2 - uploadedImages.length;
   const canGenerate = uploadedImages.length >= 2 && credits >= creditCost && !isGenerating && selectedTypes.length > 0;
+
+  let disabledReason = "";
+  if (uploadedImages.length < 2) {
+    disabledReason = `${missingImages} more image${missingImages > 1 ? "s" : ""} needed`;
+  } else if (credits < creditCost) {
+    disabledReason = "Insufficient credits";
+  } else if (selectedTypes.length === 0) {
+    disabledReason = "Select a portrait type";
+  }
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
-      className="flex flex-col items-center gap-3"
+      transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
+      className="flex flex-col items-center gap-2"
     >
       <motion.button
         onClick={onGenerate}
@@ -39,13 +49,16 @@ export default function GenerateCTA({ onGenerate }: GenerateCTAProps) {
         <span className="gold-corner bottom-right" />
 
         <span className="text-sm tracking-widest uppercase">
-          {isGenerating ? "Generating..." : `Generate ${portraitCount} Portrait${portraitCount > 1 ? "s" : ""}`}
+          {isGenerating
+            ? "Generating..."
+            : `Generate ${portraitCount} Portrait${portraitCount > 1 ? "s" : ""}`}
         </span>
       </motion.button>
 
       <p className="text-xs text-[rgba(240,237,232,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-        {creditCost} credit{creditCost > 1 ? "s" : ""} · {credits} remaining
-        {promptEditEnabled && " · ✦ Custom prompts"}
+        {disabledReason || (
+          <>{creditCost} credit{creditCost > 1 ? "s" : ""} · {credits} remaining{promptEditEnabled && " · ✦ Custom prompts"}</>
+        )}
       </p>
     </motion.section>
   );

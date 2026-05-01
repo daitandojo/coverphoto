@@ -123,12 +123,16 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   toggleType: (typeId) =>
     set((state) => {
       const isSelected = state.selectedTypes.includes(typeId);
+      const max = state.portraitCount;
       if (isSelected) {
-        if (state.selectedTypes.length <= state.portraitCount && state.selectedTypes.length <= 1) return state;
+        // Allow deselecting unless it would leave us empty
+        if (state.selectedTypes.length <= 1) return state;
         return { selectedTypes: state.selectedTypes.filter((t) => t !== typeId) };
       }
-      const max = state.portraitCount;
-      if (state.selectedTypes.length >= max) return state;
+      // At max capacity? Replace the oldest selection
+      if (state.selectedTypes.length >= max) {
+        return { selectedTypes: [...state.selectedTypes.slice(1), typeId] };
+      }
       return { selectedTypes: [...state.selectedTypes, typeId] };
     }),
   setShowTypePicker: (show) => set({ showTypePicker: show }),

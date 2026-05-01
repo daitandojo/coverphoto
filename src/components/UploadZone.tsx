@@ -92,7 +92,7 @@ export default function UploadZone() {
                 transition={{ duration: 0.2 }}
                 className="relative group"
               >
-                <div className="w-14 h-14 rounded-lg overflow-hidden ring-1 ring-white/10">
+                <div className="w-20 h-20 rounded-lg overflow-hidden ring-1 ring-white/10">
                   <img src={img.preview} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button
