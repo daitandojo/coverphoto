@@ -67,7 +67,9 @@ export async function POST(request: Request) {
       const start = Date.now();
 
       try {
-        const output = await replicate.run("openai/gpt-image-2", {
+        // Create prediction, then poll manually to see full response
+        const prediction = await replicate.predictions.create({
+          model: "openai/gpt-image-2",
           input: {
             prompt,
             input_images: refUrls,
@@ -77,29 +79,49 @@ export async function POST(request: Request) {
           },
         });
 
+        // Poll until complete
+        let final = await replicate.wait(prediction);
+
         const elapsed = Date.now() - start;
-        apiLog(`[${reqId}] Replicate ${brief.id}`, { elapsed: `${elapsed}ms`, out: JSON.stringify(output).slice(0, 200) });
+        apiLog(`[${reqId}] Replicate ${brief.id}`, {
+          elapsed: `${elapsed}ms`,
+          status: final.status,
+          outputType: typeof final.output,
+          outputStr: JSON.stringify(final.output).slice(0, 300),
+          outputKeys: final.output && typeof final.output === "object" ? Object.keys(final.output) : [],
+        });
+
+        if (final.status === "failed") {
+          throw new Error(`Prediction failed: ${final.error}`);
+        }
 
         let imageUrl = "";
-        if (Array.isArray(output)) {
-          const first = output[0];
-          if (typeof first === "string" && first.startsWith("http")) {
-            imageUrl = first;
-          } else if (first && typeof first === "object") {
-            const obj = first as Record<string, unknown>;
-            imageUrl = String(obj.url || obj.image_url || obj.output || "");
+
+        // Try prediction.output directly
+        if (typeof final.output === "string") {
+          imageUrl = final.output;
+        } else if (Array.isArray(final.output)) {
+          const f = final.output[0];
+          if (typeof f === "string") imageUrl = f;
+          else if (f && typeof f === "object") {
+            const o = f as Record<string, unknown>;
+            imageUrl = String(o.image || o.url || o.image_url || o.output || "");
           }
-        } else if (typeof output === "string") {
-          imageUrl = output;
-        } else if (output && typeof output === "object") {
-          const obj = output as Record<string, unknown>;
-          imageUrl = String(obj.url || obj.image_url || obj.output || "");
+        } else if (final.output && typeof final.output === "object") {
+          const o = final.output as Record<string, unknown>;
+          imageUrl = String(o.image || o.url || o.image_url || o.output || "");
+        }
+
+        // Also check if there's a file output URL in the prediction metadata
+        if (!imageUrl && (final as any).files) {
+          const files = (final as any).files;
+          if (Array.isArray(files) && files.length > 0) {
+            imageUrl = String(files[0].url || files[0]);
+          }
         }
 
         if (!imageUrl || !imageUrl.startsWith("http")) {
-          const raw = JSON.stringify(output);
-          apiLog(`[${reqId}] Output debug`, { isArr: Array.isArray(output), type: typeof output, firstKeys: output && typeof output === "object" ? Object.keys(output) : [], raw: raw.slice(0, 300) });
-          throw new Error(`No URL in output (type=${typeof output})`);
+          throw new Error(`No URL found. Output: ${JSON.stringify(final.output).slice(0, 200)}`);
         }
 
         const resp = await fetch(imageUrl);
