@@ -39,12 +39,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = account.providerAccountId;
       }
       if (user) {
-        token.name = user.name || null;
-        token.email = user.email || null;
-        token.picture = user.image || null;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
       }
       return token;
     },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub as string;
+        session.user.name = session.user.name || (token.name as string) || "";
+        session.user.email = session.user.email || (token.email as string) || "";
+        session.user.image = (token.picture as string) || session.user.image || "";
+      }
+      return session;
+    },
+  },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
