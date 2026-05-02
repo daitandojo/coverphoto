@@ -217,32 +217,42 @@ const SPECIALTIES: Specialty[] = [
       `Photorealistic, masterful lighting, editorial quality.`,
   },
   {
-    id: "fantasy",
-    name: "Fantasy Character",
-    description: "Transform the subject into a fantasy character — elf, wizard, fairy, knight, or mythical being.",
-    tagline: "Become the legend",
+    id: "holiday-france",
+    name: "Holiday France",
+    description: "The subject in iconic French locations having the time of their life — each render is a different, surprising holiday snapshot.",
+    tagline: "A getaway in every frame",
     cost: 4,
     fields: [
-      { key: "archetype", label: "Archetype", type: "select", options: [
-        { label: "Elf", value: "a graceful elven being with pointed ears, flowing robes, and an otherworldly glow" },
-        { label: "Wizard", value: "a wise wizard with a staff, flowing robes, and arcane symbols" },
-        { label: "Fairy", value: "a delicate fairy with translucent wings, glittering dust, and ethereal light" },
-        { label: "Knight", value: "a valiant knight in shining armour with a sword and shield" },
-        { label: "Druid", value: "a nature-bound druid with antlers, green robes, and living vines" },
-        { label: "Vampire", value: "a mysterious vampire with pale skin, dark attire, and a regal aura" },
+      { key: "region", label: "Region", type: "select", options: [
+        { label: "South (Côte d'Azur)", value: "the French Riviera, Côte d'Azur, with turquoise water and yachts" },
+        { label: "North (Normandy)", value: "Normandy with dramatic cliffs, apple orchards, and half-timbered villages" },
+        { label: "Paris", value: "Paris with the Eiffel Tower, charming cafés, and cobblestone streets" },
+        { label: "Nice", value: "Nice with its Promenade des Anglais, palm trees, and pastel buildings" },
+        { label: "Alps (Chamonix)", value: "the French Alps near Chamonix with snow-capped peaks and alpine meadows" },
+        { label: "Cognac (vineyards)", value: "the Cognac region with rolling vineyards, chateaux, and wine cellars" },
       ]},
-      { key: "setting", label: "Setting", type: "select", options: [
-        { label: "Enchanted forest", value: "an enchanted forest with glowing mushrooms and ancient trees" },
-        { label: "Castle hall", value: "a grand castle hall with torches and banners" },
-        { label: "Starry night", value: "a starry night sky with a crescent moon and mystical aurora" },
-        { label: "Mountain peak", value: "a misty mountain peak at dawn" },
+      { key: "activity", label: "Activity", type: "select", options: [
+        { label: "Kite surfing", value: "kite surfing on sparkling turquoise water, wind in the hair, wetsuit, exhilarated expression" },
+        { label: "Lying in the sun", value: "lying on a sunny beach towel, sunglasses, relaxed, a cool drink beside, soft sand" },
+        { label: "Racing bike", value: "cycling on a racing bike through lavender fields or mountain roads, windblown, determined smile" },
+        { label: "Off to the beach", value: "walking toward the beach with a towel over the shoulder, flip-flops, carefree, sun hat" },
+        { label: "On a hike", value: "hiking on an alpine trail with a backpack, walking poles, surrounded by wildflowers and mountain views" },
+        { label: "Café drink", value: "sitting at a Parisian café terrace, espresso or glass of wine, people-watching, beret" },
+        { label: "Dinner with friends", value: "laughing at a long dinner table with friends, rustic French cuisine, warm string lights overhead, clinking glasses" },
+      ]},
+      { key: "companions", label: "With others", type: "select", options: [
+        { label: "Solo", value: "alone, enjoying the moment" },
+        { label: "With friends", value: "with a group of happy friends, all laughing and celebrating" },
+        { label: "As a couple", value: "with a romantic partner, arms around each other, looking lovingly" },
       ]},
     ],
     generatePrompt: (cfg) =>
-      `Fantasy character portrait of a person transformed into ${cfg.archetype || "an elven being"}. ` +
-      `Setting: ${cfg.setting || "an enchanted forest with glowing mushrooms"}. ` +
-      `Photorealistic fantasy art, dramatic cinematic lighting, 85mm lens, Canon R5, RAW quality. ` +
-      `The subject's facial structure remains recognisable beneath the fantasy transformation.`,
+      `Holiday snapshot of the subject on vacation in ${cfg.region || "the French Riviera"}. ` +
+      `Activity: ${cfg.activity || "enjoying the sun and sea"}. ` +
+      `Companions: ${cfg.companions || "alone"}. ` +
+      `Expression: joyful, radiant smile, genuinely happy, carefree. ` +
+      `Candid, natural, vibrant colours, golden sunlight, photorealistic vacation photography, 35mm lens, Canon R5. ` +
+      `Every image should feel like a spontaneous holiday moment. The subject is the exact likeness of the reference person.`,
   },
 ];
 
