@@ -1,7 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -10,8 +12,28 @@ interface StudioHeaderProps {
   isGenerating: boolean;
 }
 
+function getInitials(name?: string | null): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 export default function StudioHeader({ onCreditsClick, credits, user, isGenerating }: StudioHeaderProps) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <motion.header
@@ -21,25 +43,32 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
       className="gradient-border-bottom"
     >
       <div className="flex items-center justify-between px-6 lg:px-12 h-16">
-        <div className="flex items-center gap-8">
-          <h1
-            className="text-xl lg:text-2xl tracking-[0.3em] text-[#F0EDE8] select-none"
-            style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}
-          >
-            COVERPHOTO
-          </h1>
-        </div>
+        <h1
+          className="text-xl lg:text-2xl tracking-[0.3em] text-[#F0EDE8] select-none cursor-pointer"
+          style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}
+          onClick={() => router.push("/")}
+        >
+          COVERPHOTO
+        </h1>
 
         <div className="flex items-center gap-4">
           {user ? (
-            <div className="flex items-center gap-3">
-              {user.image && (
-                <img
-                  src={user.image}
-                  alt=""
-                  className="w-7 h-7 rounded-full ring-1 ring-white/10"
-                />
-              )}
+            <div className="flex items-center gap-3 relative" ref={menuRef}>
+              {/* Avatar — clickable */}
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-9 h-9 rounded-full ring-2 ring-white/10 hover:ring-[#C8B99A]/40 transition-all overflow-hidden flex-shrink-0"
+              >
+                {user.image ? (
+                  <img src={user.image} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-[rgba(200,185,154,0.15)] flex items-center justify-center text-xs text-[#C8B99A] font-medium"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>
+                    {getInitials(user.name)}
+                  </div>
+                )}
+              </button>
+
               <motion.button
                 onClick={onCreditsClick}
                 whileHover={{ scale: 1.02 }}
@@ -54,6 +83,34 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                 <span>◈</span>
                 <span>{credits} credits</span>
               </motion.button>
+
+              {/* Dropdown menu */}
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 top-full mt-2 min-w-[160px] glass rounded-xl py-1.5 shadow-xl z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {user.name && (
+                      <div className="px-4 py-2 text-xs text-[rgba(240,237,232,0.4)] border-b border-white/5 truncate"
+                        style={{ fontFamily: "'DM Mono', monospace" }}>
+                        {user.name}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
+                      className="w-full text-left px-4 py-2.5 text-xs text-[rgba(240,237,232,0.6)] hover:text-[#C8B99A] hover:bg-[rgba(200,185,154,0.05)] transition-colors"
+                      style={{ fontFamily: "'DM Mono', monospace" }}
+                    >
+                      Sign out
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <motion.button
