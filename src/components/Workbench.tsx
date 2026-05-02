@@ -17,7 +17,7 @@ interface WorkbenchProps {
 }
 
 export default function Workbench({ onGenerate, canGenerate, genReason }: WorkbenchProps) {
-  const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, workbenchPortraits, resetWorkbench } = usePortraitStore();
+  const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, libraryPortraits, workbenchPortraits, resetWorkbench } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
@@ -84,22 +84,34 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
 
       {/* CENTER */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden px-2 md:px-4 py-2 md:py-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</p>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowTerms(true)}
-              className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-white/10 text-[rgba(240,237,232,0.25)] hover:text-white/60 transition-all touch-safe"
-              style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
-            {!wbEmpty && (
-              <button onClick={resetWorkbench}
-                className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-red-500/15 text-red-400/40 hover:text-red-400/70 transition-all touch-safe"
-                style={{ fontFamily: "'DM Mono', monospace" }}>✕ Clear</button>
-            )}
+        {libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? (
+          /* Empty state: guidance */
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
+            <p className="text-xs tracking-[0.4em] text-[rgba(200,185,154,0.15)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Welcome</p>
+            <p className="text-xl md:text-2xl leading-snug max-w-sm text-[rgba(240,237,232,0.4)] italic" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              Upload reference images from the left panel, then choose your portrait styles in the builder on the right. Your generated portraits will appear here.
+            </p>
           </div>
-        </div>
-        <div className="flex-1 min-h-0">
-          <PortraitCarousel onOrder={(item) => { setOrderItem(item); setShowOrder(true); }} />
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowTerms(true)}
+                  className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-white/10 text-[rgba(240,237,232,0.25)] hover:text-white/60 transition-all touch-safe"
+                  style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
+                {!wbEmpty && (
+                  <button onClick={resetWorkbench}
+                    className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-red-500/15 text-red-400/40 hover:text-red-400/70 transition-all touch-safe"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Clear</button>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 min-h-0">
+              <PortraitCarousel onOrder={(item) => { setOrderItem(item); setShowOrder(true); }} />
+            </div>
+          </>
+        )}
       </main>
 
       {/* Desktop: RIGHT panel */}
