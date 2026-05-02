@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
+
+const PROGRESS_STEPS = [
+  "Analysing image…", "Assessing likelihood…", "Incorporating references…",
+  "Composing portrait…", "Refining details…", "Finalising…",
+];
 import { motion, AnimatePresence } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 import { BRIEFS } from "@/lib/prompts";
@@ -44,8 +49,16 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
 
   const item = items[idx];
   const showArrows = items.length > 1;
+  const isReady = item.url && item.status === "completed";
 
-  const isReady = item.url && (item.status === "completed" || item.status === "error");
+  // Cycle progress messages during generation
+  const [progressIdx, setProgressIdx] = useState(0);
+  const isGenerating = item.status === "generating" && !item.url;
+  useEffect(() => {
+    if (!isGenerating) return;
+    const t = setInterval(() => setProgressIdx((p) => (p + 1) % PROGRESS_STEPS.length), 2800);
+    return () => clearInterval(t);
+  }, [isGenerating]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -62,14 +75,24 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
             <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }} className="w-full h-full">
               <div className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[200px] md:min-h-[360px] w-full bg-[rgba(255,255,255,0.02)] border border-white/5">
                 {item.status === "error" ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center border border-red-500/20 rounded-xl bg-[rgba(255,0,0,0.03)]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-[rgba(255,0,0,0.03)]">
                     <p className="text-xs text-red-400" style={{ fontFamily: "'DM Mono', monospace" }}>{getStyleName(item.style)}</p>
                     <p className="text-[9px] text-red-400/50 mt-1 text-center px-4" style={{ fontFamily: "'DM Mono', monospace" }}>{(item.error || "").slice(0, 80)}</p>
                   </div>
-                ) : item.status === "generating" || !item.url ? (
+                ) : isGenerating ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center shimmer-fast">
                     <p className="text-xs text-[rgba(200,185,154,0.5)]" style={{ fontFamily: "'DM Mono', monospace" }}>{getStyleName(item.style)}</p>
-                    <p className="text-[10px] text-[rgba(240,237,232,0.2)] mt-2" style={{ fontFamily: "'DM Mono', monospace" }}>Generating…</p>
+                    <p className="text-[9px] text-[rgba(200,185,154,0.35)] mt-2" style={{ fontFamily: "'DM Mono', monospace" }}>
+                      <AnimatePresence mode="wait">
+                        <motion.span key={progressIdx} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.25 }}>
+                          {PROGRESS_STEPS[progressIdx]}
+                        </motion.span>
+                      </AnimatePresence>
+                    </p>
+                  </div>
+                ) : !item.url ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-xs text-[rgba(200,185,154,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>{getStyleName(item.style)}</p>
                   </div>
                 ) : (
                   <img src={item.url} alt="" className="w-full h-full object-cover" />

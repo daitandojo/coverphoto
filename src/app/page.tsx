@@ -11,6 +11,7 @@ import ConfettiBurst from "@/components/ConfettiBurst";
 import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
 import Workbench from "@/components/Workbench";
+import ErrorModal from "@/components/ErrorModal";
 import { usePortraitStore } from "@/lib/store";
 import { apiLog } from "@/lib/logger";
 
@@ -50,6 +51,7 @@ export default function Home() {
   const [generating, setGenerating] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => { const seen = sessionStorage.getItem("coverphoto_splash"); if (seen) setSplashDone(true); }, []);
   useEffect(() => {
@@ -115,7 +117,18 @@ export default function Home() {
         new Notification("CoverPhoto", { body: `${okCount} portrait${okCount > 1 ? "s" : ""} ready!`, icon: "/logo.png" });
       }
       const errors = data.portraits?.filter((p: any) => p.status === "error") || [];
-      if (errors.length > 0) toast(`${errors.length} portrait${errors.length > 1 ? "s" : ""} failed`, { className: "toast-custom", icon: "⚠", duration: 6000 });
+      if (errors.length > 0) {
+        const msgs = errors.map((e: any) => e.error).filter(Boolean).join("; ");
+        // Remove error portraits from workbench so no broken placeholders linger
+        for (const err of errors) {
+          const wb = usePortraitStore.getState().workbenchPortraits;
+          const target = wb.find((p) => p.id === err.id);
+          if (target) usePortraitStore.getState().dismissFromWorkbench(target.id);
+        }
+        setErrorMsg(msgs.slice(0, 300));
+        resetCounters();
+        return;
+      }
       // Reset counters after generation
       resetCounters();
     } catch (err: any) {
@@ -203,6 +216,7 @@ export default function Home() {
             {status === "loading" && <main className="flex-1 flex items-center justify-center"><div className="shimmer w-8 h-8 rounded-full" /></main>}
             <BuyCreditsModal open={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
             {showConfetti && <ConfettiBurst />}
+            <ErrorModal open={errorMsg !== null} message={errorMsg || ""} onClose={() => setErrorMsg(null)} />
           </motion.div>
         )}
       </AnimatePresence>
