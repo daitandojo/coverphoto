@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, signIn } from "next-auth/react";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -114,7 +114,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
             </div>
           ) : (
             <motion.button
-              onClick={() => router.push("/api/auth/signin")}
+              onClick={() => signIn("google")}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="px-5 py-1.5 rounded-full border border-white/10 text-sm text-[#C8B99A] hover:border-[#C8B99A]/30 transition-colors"
