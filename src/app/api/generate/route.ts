@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       if (c.makeUp) r += "\n\nCONSTRAINT: Full professional makeup. Bold lipstick, defined eyes, flawless complexion. Glamorous, editorial makeup style.";
 if (c.onHoliday) r += "\n\nCONSTRAINT: Holiday or vacation setting. Relaxed, casual, carefree vibe. Natural sunlight, warm atmosphere. Leisurely attire.";
 if (c.blackWhite) r += "\n\nCONSTRAINT: Black and white monochrome. No colour. Classic black and white photography. Silver gelatin print aesthetic. High contrast monochrome.";
+if (c.withOthers) r += "\n\nCONSTRAINT: The subject is surrounded by other real people in the scene — friends, family, or colleagues. The other people must look natural and realistic, not like AI-generated models. Imperfect, genuine human faces. Normal body types. Casual, authentic interactions. No perfectly polished models. The scene should feel like a real candid moment with real people.";
 return r;
     }
 
