@@ -8,7 +8,7 @@ import { signOut, signIn } from "next-auth/react";
 interface StudioHeaderProps {
   onCreditsClick: () => void;
   credits: number;
-  user: { name?: string | null; image?: string | null } | null;
+  user: { name?: string | null; image?: string | null; email?: string | null } | null;
   isGenerating: boolean;
 }
 
