@@ -85,12 +85,81 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
       {/* CENTER */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden px-2 md:px-4 py-2 md:py-3">
         {libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? (
-          /* Empty state: guidance */
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-            <p className="text-xs tracking-[0.4em] text-[rgba(200,185,154,0.15)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Welcome</p>
-            <p className="text-xl md:text-2xl leading-snug max-w-sm text-[rgba(240,237,232,0.4)] italic" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Upload reference images from the left panel, then choose your portrait styles in the builder on the right. Your generated portraits will appear here.
-            </p>
+          /* Empty state: guidance with subtle premium animations */
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6 relative overflow-hidden">
+            {/* Animated particles */}
+            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 rounded-full bg-[#C8B99A]"
+                  style={{
+                    left: `${5 + Math.random() * 90}%`,
+                    top: `${10 + Math.random() * 80}%`,
+                  }}
+                  animate={{
+                    y: [0, -30 - Math.random() * 40, 0],
+                    x: [0, (Math.random() - 0.5) * 20, 0],
+                    opacity: [0, 0.6, 0],
+                    scale: [0, 1.2, 0],
+                  }}
+                  transition={{
+                    duration: 4 + Math.random() * 4,
+                    repeat: Infinity,
+                    delay: Math.random() * 4,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+              {/* Larger slow-drifting orbs */}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <motion.div
+                  key={`orb-${i}`}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: 60 + Math.random() * 100,
+                    height: 60 + Math.random() * 100,
+                    left: `${5 + Math.random() * 90}%`,
+                    top: `${10 + Math.random() * 80}%`,
+                    background: `radial-gradient(circle at center, rgba(200,185,154,0.06) 0%, transparent 70%)`,
+                  }}
+                  animate={{
+                    y: [0, -20 - Math.random() * 30, 0],
+                    x: [0, (Math.random() - 0.5) * 30, 0],
+                    scale: [1, 1.15, 1],
+                    opacity: [0.3, 0.6, 0.3],
+                  }}
+                  transition={{
+                    duration: 8 + Math.random() * 6,
+                    repeat: Infinity,
+                    delay: Math.random() * 6,
+                    ease: "easeInOut",
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Content (above particles) */}
+            <div className="relative z-10 flex flex-col items-center gap-4">
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-xs tracking-[0.4em] text-[rgba(200,185,154,0.15)] uppercase"
+                style={{ fontFamily: "'DM Mono', monospace" }}
+              >
+                Welcome
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="text-2xl md:text-3xl leading-snug max-w-sm text-[rgba(240,237,232,0.4)] italic"
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              >
+                Upload reference images from the left panel, then choose your portrait styles in the builder on the right. Your generated portraits will appear here.
+              </motion.p>
+            </div>
           </div>
         ) : (
           <>
