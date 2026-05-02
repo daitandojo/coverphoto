@@ -161,41 +161,43 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
 
   return (
     <div className="flex flex-col md:flex-row gap-2 md:gap-5 h-full w-full min-h-0 overflow-y-auto md:overflow-hidden">
-      {/* LIBRARY — always 50% width, centered when workbench hidden */}
-      <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "w-1/2" : "w-1/2 mx-auto"}`}>
-        <Carousel
-          items={libraryPortraits}
-          idx={libIdx}
-          setIdx={setLibIdx}
-          label="Library"
-          emptyLabel="No saved portraits yet"
-          hasOrder={true}
-          onOrder={onOrder}
-          renderActions={(item, idx) => (
-            <div className="flex gap-1.5 md:gap-2">
-              <button onClick={() => handleDownload(item.url, item.style, idx)}
-                className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[9px] md:text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                style={{ fontFamily: "'DM Mono', monospace" }}>↓ Save</button>
-              <button onClick={() => deleteFromLibrary(item.id)}
-                className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                style={{ fontFamily: "'DM Mono', monospace" }}>🗑 Delete</button>
-            </div>
-          )}
-        />
-      </motion.div>
+      {/* LIBRARY — only shown when it has images */}
+      {libraryPortraits.length > 0 && (
+        <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "w-1/2" : "w-1/2 mx-auto"}`}>
+          <Carousel
+            items={libraryPortraits}
+            idx={libIdx}
+            setIdx={setLibIdx}
+            label="Library"
+            emptyLabel=""
+            hasOrder={true}
+            onOrder={onOrder}
+            renderActions={(item, idx) => (
+              <div className="flex gap-1.5 md:gap-2">
+                <button onClick={() => handleDownload(item.url, item.style, idx)}
+                  className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[9px] md:text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                  style={{ fontFamily: "'DM Mono', monospace" }}>↓ Save</button>
+                <button onClick={() => deleteFromLibrary(item.id)}
+                  className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                  style={{ fontFamily: "'DM Mono', monospace" }}>🗑 Delete</button>
+              </div>
+            )}
+          />
+        </motion.div>
+      )}
 
       {/* Divider + Workbench — only when workbench has items */}
       <AnimatePresence>
-        {workbenchPortraits.length > 0 && (
+        {workbenchPortraits.length > 0 && libraryPortraits.length > 0 && (
           <motion.div key="divider-desk" initial={{ opacity: 0, scaleX: 0 }} animate={{ opacity: 1, scaleX: 1 }} exit={{ opacity: 0, scaleX: 0 }} transition={{ duration: 0.3 }}
             className="hidden md:block w-px bg-white/5 flex-shrink-0" />
         )}
-        {workbenchPortraits.length > 0 && (
+        {workbenchPortraits.length > 0 && libraryPortraits.length > 0 && (
           <motion.div key="divider-mob" initial={{ opacity: 0, scaleY: 0 }} animate={{ opacity: 1, scaleY: 1 }} exit={{ opacity: 0, scaleY: 0 }} transition={{ duration: 0.3 }}
             className="md:hidden h-px bg-white/5 flex-shrink-0 my-1" />
         )}
         {workbenchPortraits.length > 0 && (
-          <motion.div key="workbench-desk" initial={{ width: 0, opacity: 0 }} animate={{ width: "50%", opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.35, ease: "easeInOut" }}
+          <motion.div key="workbench-desk" initial={{ width: 0, opacity: 0 }} animate={{ width: libraryPortraits.length > 0 ? "50%" : "100%", opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.35, ease: "easeInOut" }}
             className="hidden md:flex flex-col min-h-0 min-w-0 overflow-hidden">
             <Carousel items={workbenchPortraits} idx={wbIdx} setIdx={setWbIdx} label="Workbench" emptyLabel="" hasOrder={false}
               renderActions={(item) => (
