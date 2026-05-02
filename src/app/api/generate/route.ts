@@ -23,6 +23,15 @@ async function uploadRef(base64: string, email: string, i: number): Promise<stri
   return url;
 }
 
+async function uploadPortrait(buffer: Buffer, email: string, style: string): Promise<string> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  }
+  const { put } = await import("@vercel/blob");
+  const { url } = await put(`portraits/${email}/${Date.now()}-${style}.jpg`, buffer, { access: "public" });
+  return url;
+}
+
 export async function POST(request: Request) {
   const reqId = Math.random().toString(36).slice(2, 8);
   apiLog(`[${reqId}] POST /api/generate`);
@@ -183,11 +192,12 @@ return r;
         if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
         const buffer = Buffer.from(await resp.arrayBuffer());
         const watermarked = await applyWatermark(buffer, false);
+        const finalUrl = await uploadPortrait(watermarked, email, brief.id);
 
         generatedPortraits.push({
           id: `portrait-${i}`,
           style: brief.id,
-          url: `data:image/jpeg;base64,${watermarked.toString("base64")}`,
+          url: finalUrl,
           status: "completed",
         });
       } catch (err: any) {
