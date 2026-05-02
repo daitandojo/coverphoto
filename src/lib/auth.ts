@@ -46,11 +46,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub as string;
-        session.user.name = session.user.name || (token.name as string) || "";
-        session.user.email = session.user.email || (token.email as string) || "";
-        session.user.image = (token.picture as string) || session.user.image || "";
+      if (session.user?.email) {
+        // Fetch user from DB to ensure avatar is always up-to-date
+        const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } }).catch(() => null);
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.name = dbUser.name || token.name as string || "";
+          session.user.email = dbUser.email || "";
+          session.user.image = dbUser.image || token.picture as string || "";
+        } else {
+          session.user.id = token.sub as string;
+          session.user.name = session.user.name || (token.name as string) || "";
+          session.user.email = session.user.email || (token.email as string) || "";
+          session.user.image = (token.picture as string) || session.user.image || "";
+        }
       }
       return session;
     },
