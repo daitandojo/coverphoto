@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       if (c.lookAtCamera) r += "\n\nCONSTRAINT: The subject must look directly into the camera lens. Direct eye contact.";
       if (c.bright) r += "\n\nCONSTRAINT: Bright, well-lit environment. High-key lighting. No dark shadows. The scene should be brightly illuminated.";
       if (c.winking) r += "\n\nCONSTRAINT: The subject must be winking with one eye. One eye closed, the other open. A playful wink.";
-      if (c.naked) r += "\n\nCONSTRAINT: Fine art nude portrait. The subject is unclothed. No clothing. Artistic nude photography.";
+      if (c.naked) r += "\n\nCONSTRAINT: Full body shot. The entire person is visible from head to toe. Full height portrait showing the complete figure. Not just a headshot or bust.";
       return r;
     }
 

@@ -61,7 +61,12 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
           <AnimatePresence mode="wait">
             <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }} className="w-full h-full">
               <div className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[200px] md:min-h-[360px] w-full bg-[rgba(255,255,255,0.02)] border border-white/5">
-                {item.status === "generating" || !item.url ? (
+                {item.status === "error" ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center border border-red-500/20 rounded-xl bg-[rgba(255,0,0,0.03)]">
+                    <p className="text-xs text-red-400" style={{ fontFamily: "'DM Mono', monospace" }}>{getStyleName(item.style)}</p>
+                    <p className="text-[9px] text-red-400/50 mt-1 text-center px-4" style={{ fontFamily: "'DM Mono', monospace" }}>{(item.error || "").slice(0, 80)}</p>
+                  </div>
+                ) : item.status === "generating" || !item.url ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center shimmer-fast">
                     <p className="text-xs text-[rgba(200,185,154,0.5)]" style={{ fontFamily: "'DM Mono', monospace" }}>{getStyleName(item.style)}</p>
                     <p className="text-[10px] text-[rgba(240,237,232,0.2)] mt-2" style={{ fontFamily: "'DM Mono', monospace" }}>Generating…</p>
