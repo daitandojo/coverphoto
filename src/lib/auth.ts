@@ -39,10 +39,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = account.providerAccountId;
       }
       if (user) {
-        // On initial sign-in, copy profile info to the token
-        token.name = user.name;
-        token.email = user.email;
-        token.picture = user.image;
+        token.name = user.name || null;
+        token.email = user.email || null;
+        token.picture = user.image || null;
       }
       return token;
     },
@@ -51,7 +50,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.name = session.user.name || (token.name as string) || null;
         session.user.email = session.user.email || (token.email as string) || null;
-        session.user.image = session.user.image || (token.picture as string) || null;
+        session.user.image = (token.picture as string) || session.user.image || null;
       }
       return session;
     },
