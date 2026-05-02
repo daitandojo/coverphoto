@@ -12,6 +12,7 @@ import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
 import Workbench from "@/components/Workbench";
 import ErrorModal from "@/components/ErrorModal";
+import EmailAuthModal from "@/components/EmailAuthModal";
 import { usePortraitStore } from "@/lib/store";
 import { apiLog } from "@/lib/logger";
 
@@ -52,6 +53,7 @@ export default function Home() {
   const [splashDone, setSplashDone] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showEmailAuth, setShowEmailAuth] = useState(false);
 
   useEffect(() => { const seen = sessionStorage.getItem("coverphoto_splash"); if (seen) setSplashDone(true); }, []);
   useEffect(() => {
@@ -181,9 +183,14 @@ export default function Home() {
                   <motion.button onClick={() => signIn("google")} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
                     className="cta-corners relative px-8 py-3 rounded-lg border border-[#C8B99A]/40 text-sm text-[#C8B99A] pulse-glow bg-[rgba(200,185,154,0.04)]" style={{ fontFamily: "'DM Mono', monospace" }}>
                     <span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" />
-                    Craft Your Own Series
+                    Continue with Google
                   </motion.button>
-                  <p className="text-[10px] text-[rgba(240,237,232,0.15)] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>100 free credits to start — No credit card required</p>
+                  <motion.button onClick={() => setShowEmailAuth(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    className="px-6 py-2.5 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.4)] hover:text-white/70 transition-all"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>
+                    Sign in with email
+                  </motion.button>
+                  <p className="text-[10px] text-[rgba(240,237,232,0.15)] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>5 free credits to start — No credit card required</p>
                 </motion.div>
               </main>
             )}
@@ -217,6 +224,7 @@ export default function Home() {
             <BuyCreditsModal open={showBuyCredits} onClose={() => setShowBuyCredits(false)} />
             {showConfetti && <ConfettiBurst />}
             <ErrorModal open={errorMsg !== null} message={errorMsg || ""} onClose={() => setErrorMsg(null)} />
+            <EmailAuthModal open={showEmailAuth} onClose={() => setShowEmailAuth(false)} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, getUserCredits, deductCredits } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { applyWatermark } from "@/lib/watermark";
@@ -34,9 +34,10 @@ export async function POST(request: Request) {
     const rateCheck = await checkRateLimit(session.user.email);
     if (!rateCheck.success) return NextResponse.json({ error: "Rate limit exceeded." }, { status: 429 });
 
+    const userCredits = await getUserCredits(session.user.email);
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    apiLog(`[${reqId}] User`, { credits: user.credits });
+    apiLog(`[${reqId}] Credits`, { credits: userCredits });
 
     const { images, typeCounters, customPrompts, specialConfigs, specialFields, constraints } = await request.json();
     if (!images?.length || images.length < 2) {
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       return sum + (spec ? spec.cost : 4);
     }, 0);
     const creditCost = orderedTypes.length + specCost + (promptEditEnabled ? 2 : 0);
-    if (user.credits < creditCost) {
+    if (userCredits < creditCost) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
@@ -220,7 +221,7 @@ return r;
       data: { userId: user.id, images: JSON.stringify(refUrls), portraits: JSON.stringify(generatedPortraits) },
     });
 
-    return NextResponse.json({ portraits: generatedPortraits, creditsRemaining: ok > 0 ? user.credits - creditCost : user.credits });
+    return NextResponse.json({ portraits: generatedPortraits, creditsRemaining: ok > 0 ? userCredits - creditCost : userCredits });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Generation failed";
     apiError(`[${reqId}] Catch`, { message: msg });
