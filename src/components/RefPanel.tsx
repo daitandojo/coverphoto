@@ -60,7 +60,7 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
                   <img src={img.preview} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button onClick={() => removeUploadedImage(img.id)}
-                  className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-[10px] text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100">×</button>
+                  className="absolute top-2 right-2 w-7 h-7 min-h-[28px] min-w-[28px] rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-xs text-white/70 hover:text-white transition-all touch-always-show">×</button>
               </motion.div>
             ))}
           </motion.div>

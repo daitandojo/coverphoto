@@ -16,6 +16,7 @@ export default function BuilderPanel({ onGenerate, canGenerate, reason }: Builde
     typeCounters, incrementType, decrementType,
     specialCounters, incrementSpecial, decrementSpecial, specialFields, setSpecialField,
     totalSelected, promptEditEnabled, setPromptEditEnabled, customPrompts, setCustomPrompts, credits,
+    constraints, toggleConstraint,
   } = usePortraitStore();
   const total = totalSelected();
   const hasTypes = Object.values(typeCounters).some((v) => v > 0);
@@ -124,6 +125,23 @@ export default function BuilderPanel({ onGenerate, canGenerate, reason }: Builde
 
       {/* Footer with GENERATE */}
       <div className="flex-shrink-0 space-y-2 pt-2 border-t border-white/5">
+        {/* Prompt constraints */}
+        <div>
+          <p className="text-[9px] tracking-[0.25em] text-[rgba(240,237,232,0.15)] uppercase mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>Prompt Constraints</p>
+          <div className="flex flex-wrap gap-1.5">
+            {[{ key: "lookAtCamera", label: "👁 Looking into camera" }, { key: "bright", label: "☀️ Bright" }, { key: "winking", label: "😉 Winking" }, { key: "naked", label: "🫣 Naked" }].map((c) => {
+              const on = constraints[c.key];
+              return (
+                <button key={c.key} onClick={() => toggleConstraint(c.key)}
+                  className={`px-2 py-1 rounded border text-[9px] transition-all min-h-[28px] touch-safe ${
+                    on ? "border-[#C8B99A] text-[#C8B99A] bg-[rgba(200,185,154,0.06)]" : "border-white/10 text-[rgba(240,237,232,0.25)] hover:text-white/50"
+                  }`}
+                  style={{ fontFamily: "'DM Mono', monospace" }}>{c.label}</button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Generate button */}
         <motion.button
           onClick={onGenerate}

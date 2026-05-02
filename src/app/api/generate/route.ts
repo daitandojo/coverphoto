@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
     apiLog(`[${reqId}] User`, { credits: user.credits });
 
-    const { images, typeCounters, customPrompts, specialConfigs, specialFields } = await request.json();
+    const { images, typeCounters, customPrompts, specialConfigs, specialFields, constraints } = await request.json();
     if (!images?.length || images.length < 2) {
       return NextResponse.json({ error: "At least 2 reference images required" }, { status: 400 });
     }
@@ -72,8 +72,18 @@ export async function POST(request: Request) {
     }
 
     const briefs = getBriefs(orderedTypes);
+    function applyConstraints(p: string): string {
+      const c = constraints || {};
+      let r = p;
+      if (c.lookAtCamera) r += "\n\nCONSTRAINT: The subject must look directly into the camera lens. Direct eye contact.";
+      if (c.bright) r += "\n\nCONSTRAINT: Bright, well-lit environment. High-key lighting. No dark shadows. The scene should be brightly illuminated.";
+      if (c.winking) r += "\n\nCONSTRAINT: The subject must be winking with one eye. One eye closed, the other open. A playful wink.";
+      if (c.naked) r += "\n\nCONSTRAINT: Fine art nude portrait. The subject is unclothed. No clothing. Artistic nude photography.";
+      return r;
+    }
+
     const allBriefs: { id: string; prompt: string }[] = [
-      ...briefs.map((b) => ({ id: b.id, prompt: customPrompts?.[b.id] ? customPrompts[b.id] : randomizePrompt(b.id, b.prompt) })),
+      ...briefs.map((b) => ({ id: b.id, prompt: applyConstraints(customPrompts?.[b.id] ? customPrompts[b.id] : randomizePrompt(b.id, b.prompt)) })),
       ...orderedSpecials.map((s) => {
         const spec = getSpecialty(s.id);
         return { id: s.id, prompt: spec ? spec.generatePrompt(s.config) : `Portrait: ${s.id}` };

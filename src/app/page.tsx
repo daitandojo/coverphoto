@@ -90,6 +90,7 @@ export default function Home() {
           specialConfigs: usePortraitStore.getState().specialCounters,
           specialFields: usePortraitStore.getState().specialFields,
           customPrompts: promptEditEnabled ? customPrompts : undefined,
+          constraints: usePortraitStore.getState().constraints,
         }),
       });
       if (!res.ok) { const err = await res.json().catch(() => ({ error: "Unknown" })); if (res.status === 402) { setShowBuyCredits(true); return; } throw new Error(err.error || `Generation failed (${res.status})`); }
@@ -144,7 +145,7 @@ export default function Home() {
       <AnimatePresence>{!splashDone && <SplashScreen onComplete={handleSplashComplete} />}</AnimatePresence>
       <AnimatePresence>
         {splashDone && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="h-screen flex flex-col overflow-hidden">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="h-dvh min-h-screen flex flex-col overflow-hidden">
             <StudioHeader onCreditsClick={() => setShowBuyCredits(true)} credits={credits} user={session?.user ?? null} isGenerating={generating} />
             {status === "unauthenticated" && (
               <main className="flex-1 flex flex-col items-center justify-center gap-6 md:gap-8 px-4 min-h-0">

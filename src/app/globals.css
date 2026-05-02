@@ -18,6 +18,36 @@
   --glow-accent-strong: 0 0 30px rgba(200, 185, 154, 0.25);
 }
 
+/* Touch-friendly target sizes */
+@media (pointer: coarse) {
+  .touch-safe { min-height: 44px; min-width: 44px; }
+  .hide-on-touch { display: none !important; }
+  .show-on-touch { display: flex !important; }
+}
+
+@media (hover: hover) {
+  .touch-always-show { opacity: 0; }
+  .group:hover .touch-always-show { opacity: 1; }
+}
+@media (hover: none) {
+  .touch-always-show { opacity: 1; }
+  .hover-only { display: none !important; }
+}
+
+/* Gold corner — hover only on pointer devices */
+@media (hover: hover) {
+  .group:hover .gold-corner::before, .group:hover .gold-corner::after { background: rgba(200, 185, 154, 0.7); box-shadow: 0 0 8px rgba(200, 185, 154, 0.3); }
+  .group:hover .gold-corner { width: 20px; height: 20px; }
+  .group:hover .gold-corner::before { width: 22px; }
+  .group:hover .gold-corner::after { height: 22px; }
+}
+@media (hover: none) {
+  .group:active .gold-corner::before, .group:active .gold-corner::after { background: rgba(200, 185, 154, 0.7); box-shadow: 0 0 8px rgba(200, 185, 154, 0.3); }
+  .group:active .gold-corner { width: 20px; height: 20px; }
+  .group:active .gold-corner::before { width: 22px; }
+  .group:active .gold-corner::after { height: 22px; }
+}
+
 :root {
   --background: #080808;
   --foreground: #F0EDE8;

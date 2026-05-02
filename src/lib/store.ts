@@ -17,11 +17,11 @@ interface PortraitStore {
   showShareCard: boolean;
   sessionId: string | null;
   showBuyCredits: boolean;
+  libIdx: number;
+  wbIdx: number;
 
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
-  leftPanelPinned: boolean;
-  rightPanelPinned: boolean;
 
   typeCounters: TypeCounter;
   promptEditEnabled: boolean;
@@ -29,8 +29,7 @@ interface PortraitStore {
   specialCounters: TypeCounter;
   specialFields: Record<string, Record<string, string>>;
 
-  libIdx: number;
-  wbIdx: number;
+  constraints: Record<string, boolean>;
 
   setCredits: (c: number) => void;
   completeFirstRun: () => void;
@@ -50,25 +49,23 @@ interface PortraitStore {
   setLibIdx: (i: number) => void;
   setWbIdx: (i: number) => void;
 
-  toggleLeftPanel: () => void;
-  toggleRightPanel: () => void;
+  toggleConstraint: (key: string) => void;
   setLeftPanelOpen: (o: boolean) => void;
   setRightPanelOpen: (o: boolean) => void;
-  pinLeftPanel: (p: boolean) => void;
-  pinRightPanel: (p: boolean) => void;
 
   incrementType: (id: string) => void;
   decrementType: (id: string) => void;
   resetCounters: () => void;
   selectOneOfEach: () => void;
   totalSelected: () => number;
+  selectedTypesList: () => string[];
   setPromptEditEnabled: (e: boolean) => void;
   setCustomPrompts: (p: Record<string, string>) => void;
 
   incrementSpecial: (id: string) => void;
   decrementSpecial: (id: string) => void;
   setSpecialField: (id: string, key: string, value: string) => void;
-  loadSession: (data: { portraits: any[]; sessionId: string | null; credits: number }) => void;
+  loadSession: (data: { portraits: any[]; uploadedImages?: any[]; credits: number }) => void;
 }
 
 function makeTC(): TypeCounter {
@@ -92,17 +89,16 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   showBuyCredits: false,
   libIdx: 0,
   wbIdx: 0,
-
   leftPanelOpen: true,
   rightPanelOpen: true,
-  leftPanelPinned: true,
-  rightPanelPinned: true,
 
   typeCounters: makeTC(),
   promptEditEnabled: false,
   customPrompts: {},
   specialCounters: makeTC(),
   specialFields: {},
+
+  constraints: { lookAtCamera: false, bright: false, winking: false, naked: false },
 
   setCredits: (c) => set({ credits: c }),
   completeFirstRun: () => set({ isFirstRun: false }),
@@ -116,15 +112,9 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   },
 
   addToWorkbench: (types) => {
-    const placeholders: PortraitImage[] = types.map((t) => ({
-      id: `portrait-${idGen++}`,
-      url: "",
-      status: "generating",
-      style: t as any,
-    }));
+    const placeholders: PortraitImage[] = types.map((t) => ({ id: `portrait-${idGen++}`, url: "", status: "generating", style: t as any }));
     set((s) => ({ isGenerating: true, workbenchPortraits: [...s.workbenchPortraits, ...placeholders] }));
   },
-
   updateWorkbenchPortrait: (id, u) => set((s) => ({ workbenchPortraits: s.workbenchPortraits.map((p) => (p.id === id ? { ...p, ...u } : p)) })),
 
   moveToLibrary: async (id) => {
@@ -161,46 +151,30 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setLibIdx: (i) => set({ libIdx: i }),
   setWbIdx: (i) => set({ wbIdx: i }),
 
-  toggleLeftPanel: () => set((s) => ({ leftPanelOpen: !s.leftPanelOpen, leftPanelPinned: !s.leftPanelOpen ? true : s.leftPanelPinned })),
-  toggleRightPanel: () => set((s) => ({ rightPanelOpen: !s.rightPanelOpen, rightPanelPinned: !s.rightPanelOpen ? true : s.rightPanelPinned })),
+  toggleConstraint: (key) => set((s) => ({ constraints: { ...s.constraints, [key]: !s.constraints[key] } })),
+
   setLeftPanelOpen: (o) => set({ leftPanelOpen: o }),
   setRightPanelOpen: (o) => set({ rightPanelOpen: o }),
-  pinLeftPanel: (p) => set({ leftPanelPinned: p }),
-  pinRightPanel: (p) => set({ rightPanelPinned: p }),
 
   incrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: (s.typeCounters[id] || 0) + 1 } })),
   decrementType: (id) => set((s) => ({ typeCounters: { ...s.typeCounters, [id]: Math.max(0, (s.typeCounters[id] || 0) - 1) } })),
   resetCounters: () => set({ typeCounters: makeTC(), specialCounters: makeTC(), specialFields: {} }),
-  selectOneOfEach: () => {
-    const tc = makeTC();
-    BRIEFS.forEach((b) => (tc[b.id] = 1));
-    set({ typeCounters: tc });
-  },
+  selectOneOfEach: () => { const tc = makeTC(); BRIEFS.forEach((b) => (tc[b.id] = 1)); set({ typeCounters: tc }); },
   totalSelected: () => Object.values(get().typeCounters).reduce((a, b) => a + b, 0) + Object.values(get().specialCounters).reduce((a, b) => a + b, 0),
+  selectedTypesList: () => Object.entries(get().typeCounters).flatMap(([k, v]) => Array(v).fill(k)),
   setPromptEditEnabled: (e) => set({ promptEditEnabled: e }),
   setCustomPrompts: (p) => set({ customPrompts: p }),
   incrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: (s.specialCounters[id] || 0) + 1 } })),
   decrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: Math.max(0, (s.specialCounters[id] || 0) - 1) } })),
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
 
-  loadSession: (data: { portraits: any[]; uploadedImages?: any[]; credits: number }) => {
+  loadSession: (data) => {
     const portraits: PortraitImage[] = (data.portraits || []).map((p: any, i: number) => ({
-      id: p.id || `restored-${i}`,
-      url: p.url || "",
-      style: p.style || "executive",
-      status: "completed",
-      error: p.error,
+      id: p.id || `restored-${i}`, url: p.url || "", style: p.style || "executive", status: "completed", error: p.error,
     }));
-    // Re-hydrate uploaded image previews as object URLs (they'll be base64 data URLs)
     const uploadedImages: UploadedImage[] = (data.uploadedImages || []).map((img: any) => ({
-      id: img.id || `restored-img-${Math.random()}`,
-      file: new File([], "restored"),
-      preview: img.preview || "",
+      id: img.id || `restored-img-${Math.random()}`, file: new File([], "restored"), preview: img.preview || "",
     }));
-    set({
-      libraryPortraits: portraits,
-      uploadedImages,
-      credits: data.credits,
-    });
+    set({ libraryPortraits: portraits, uploadedImages, credits: data.credits });
   },
 }));
