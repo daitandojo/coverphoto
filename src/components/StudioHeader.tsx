@@ -92,7 +92,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -6, scale: 0.95 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute right-0 top-full mt-2 min-w-[160px] glass rounded-xl py-1.5 shadow-xl z-50"
+                    className="absolute right-0 top-full mt-2 min-w-[160px] bg-[rgba(8,8,8,0.96)] border border-white/10 rounded-xl py-1.5 shadow-xl z-50"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {user.name && (
