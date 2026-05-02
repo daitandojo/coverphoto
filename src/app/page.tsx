@@ -109,7 +109,14 @@ export default function Home() {
       const data = await res.json();
       data.portraits?.forEach((p: any, i: number) => {
         const wb = usePortraitStore.getState().workbenchPortraits;
-        if (wb[i]) updateWorkbenchPortrait(wb[i].id, { url: p.url, status: p.status, error: p.error });
+        if (wb[i]) {
+          if (p.status === "error") {
+            // Remove error portraits immediately — don't leave broken placeholders
+            usePortraitStore.getState().dismissFromWorkbench(wb[i].id);
+          } else {
+            updateWorkbenchPortrait(wb[i].id, { url: p.url, status: p.status, error: p.error });
+          }
+        }
       });
       if (data.creditsRemaining !== undefined) setCredits(data.creditsRemaining);
       setSessionId(data.sessionId || null);
@@ -121,15 +128,7 @@ export default function Home() {
       const errors = data.portraits?.filter((p: any) => p.status === "error") || [];
       if (errors.length > 0) {
         const msgs = errors.map((e: any) => e.error).filter(Boolean).join("; ");
-        // Remove error portraits from workbench so no broken placeholders linger
-        for (const err of errors) {
-          const wb = usePortraitStore.getState().workbenchPortraits;
-          const target = wb.find((p) => p.id === err.id);
-          if (target) usePortraitStore.getState().dismissFromWorkbench(target.id);
-        }
         setErrorMsg(msgs.slice(0, 300));
-        resetCounters();
-        return;
       }
       // Reset counters after generation
       resetCounters();
