@@ -88,8 +88,9 @@ export async function POST(request: Request) {
       if (c.friendly) r += "\n\nCONSTRAINT: Warm, friendly, approachable expression. Open body language. A welcoming, kind smile. The subject looks like a trusted friend.";
       if (c.tanned) r += "\n\nCONSTRAINT: Sun-kissed, tanned skin tone. Warm bronze glow. Healthy, outdoor complexion. Sunkissed look.";
       if (c.makeUp) r += "\n\nCONSTRAINT: Full professional makeup. Bold lipstick, defined eyes, flawless complexion. Glamorous, editorial makeup style.";
-      if (c.onHoliday) r += "\n\nCONSTRAINT: Holiday or vacation setting. Relaxed, casual, carefree vibe. Natural sunlight, warm atmosphere. Leisurely attire.";
-      return r;
+if (c.onHoliday) r += "\n\nCONSTRAINT: Holiday or vacation setting. Relaxed, casual, carefree vibe. Natural sunlight, warm atmosphere. Leisurely attire.";
+if (c.blackWhite) r += "\n\nCONSTRAINT: Black and white monochrome. No colour. Classic black and white photography. Silver gelatin print aesthetic. High contrast monochrome.";
+return r;
     }
 
     const allBriefs: { id: string; prompt: string }[] = [
