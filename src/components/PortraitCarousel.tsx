@@ -138,8 +138,8 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
 
   return (
     <div className="flex flex-col md:flex-row gap-2 md:gap-5 h-full w-full min-h-0 overflow-y-auto md:overflow-hidden">
-      {/* LIBRARY — always visible, stretches full width when workbench is empty */}
-      <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "flex-1" : "w-full"}`}>
+      {/* LIBRARY — always 50% width, centered when workbench hidden */}
+      <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "w-1/2" : "w-1/2 mx-auto"}`}>
         <Carousel
           items={libraryPortraits}
           idx={libIdx}
@@ -161,32 +161,20 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
         />
       </motion.div>
 
-      {/* Divider — only when workbench visible */}
+      {/* Divider + Workbench — only when workbench has items */}
       <AnimatePresence>
         {workbenchPortraits.length > 0 && (
-          <motion.div key="divider" initial={{ opacity: 0, scaleX: 0 }} animate={{ opacity: 1, scaleX: 1 }} exit={{ opacity: 0, scaleX: 0 }} transition={{ duration: 0.3 }}
+          <motion.div key="divider-desk" initial={{ opacity: 0, scaleX: 0 }} animate={{ opacity: 1, scaleX: 1 }} exit={{ opacity: 0, scaleX: 0 }} transition={{ duration: 0.3 }}
             className="hidden md:block w-px bg-white/5 flex-shrink-0" />
         )}
-      </AnimatePresence>
-      <AnimatePresence>
         {workbenchPortraits.length > 0 && (
           <motion.div key="divider-mob" initial={{ opacity: 0, scaleY: 0 }} animate={{ opacity: 1, scaleY: 1 }} exit={{ opacity: 0, scaleY: 0 }} transition={{ duration: 0.3 }}
             className="md:hidden h-px bg-white/5 flex-shrink-0 my-1" />
         )}
-      </AnimatePresence>
-
-      {/* WORKBENCH — only visible when has items */}
-      <AnimatePresence>
         {workbenchPortraits.length > 0 && (
-          <motion.div key="workbench" initial={{ width: 0, opacity: 0 }} animate={{ width: "auto", opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.35, ease: "easeInOut" }}
-            className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-            <Carousel
-              items={workbenchPortraits}
-              idx={wbIdx}
-              setIdx={setWbIdx}
-              label="Workbench"
-              emptyLabel="Generate portraits in the builder"
-              hasOrder={false}
+          <motion.div key="workbench-desk" initial={{ width: 0, opacity: 0 }} animate={{ width: "50%", opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="hidden md:flex flex-col min-h-0 min-w-0 overflow-hidden">
+            <Carousel items={workbenchPortraits} idx={wbIdx} setIdx={setWbIdx} label="Workbench" emptyLabel="" hasOrder={false}
               renderActions={(item) => (
                 <div className="flex gap-1.5 md:gap-2">
                   <button onClick={() => moveToLibrary(item.id)}
@@ -196,8 +184,23 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
                     className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
                     style={{ fontFamily: "'DM Mono', monospace" }}>✕ Dismiss</button>
                 </div>
-              )}
-            />
+              )} />
+          </motion.div>
+        )}
+        {workbenchPortraits.length > 0 && (
+          <motion.div key="workbench-mob" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="md:hidden flex flex-col min-h-0 min-w-0 overflow-hidden">
+            <Carousel items={workbenchPortraits} idx={wbIdx} setIdx={setWbIdx} label="Workbench" emptyLabel="" hasOrder={false}
+              renderActions={(item) => (
+                <div className="flex gap-1.5 md:gap-2">
+                  <button onClick={() => moveToLibrary(item.id)}
+                    className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-[#C8B99A]/30 text-[9px] md:text-[10px] text-[#C8B99A]/90 hover:bg-[#C8B99A]/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>📚 Library</button>
+                  <button onClick={() => dismissFromWorkbench(item.id)}
+                    className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Dismiss</button>
+                </div>
+              )} />
           </motion.div>
         )}
       </AnimatePresence>
