@@ -34,24 +34,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/" },
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, user }) {
       if (account) {
         token.id = account.providerAccountId;
-        // Copy Google profile info to token
-        if (profile) {
-          token.name = (profile as any).name;
-          token.email = (profile as any).email;
-          token.picture = (profile as any).picture;
-        }
+      }
+      if (user) {
+        // On initial sign-in, copy profile info to the token
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.name = session.user.name || (token.name as string) || (token.email as string)?.split("@")[0] || null;
-        session.user.email = (token.email as string) || session.user.email;
-        session.user.image = (token.picture as string) || session.user.image;
+        session.user.name = session.user.name || (token.name as string) || null;
+        session.user.email = session.user.email || (token.email as string) || null;
+        session.user.image = session.user.image || (token.picture as string) || null;
       }
       return session;
     },
