@@ -216,6 +216,34 @@ const SPECIALTIES: Specialty[] = [
       `The facial structure remains that of the reference subject, but hair, makeup, wardrobe, and overall aesthetic reference the chosen celebrity. ` +
       `Photorealistic, masterful lighting, editorial quality.`,
   },
+  {
+    id: "fantasy",
+    name: "Fantasy Character",
+    description: "Transform the subject into a fantasy character — elf, wizard, fairy, knight, or mythical being.",
+    tagline: "Become the legend",
+    cost: 4,
+    fields: [
+      { key: "archetype", label: "Archetype", type: "select", options: [
+        { label: "Elf", value: "a graceful elven being with pointed ears, flowing robes, and an otherworldly glow" },
+        { label: "Wizard", value: "a wise wizard with a staff, flowing robes, and arcane symbols" },
+        { label: "Fairy", value: "a delicate fairy with translucent wings, glittering dust, and ethereal light" },
+        { label: "Knight", value: "a valiant knight in shining armour with a sword and shield" },
+        { label: "Druid", value: "a nature-bound druid with antlers, green robes, and living vines" },
+        { label: "Vampire", value: "a mysterious vampire with pale skin, dark attire, and a regal aura" },
+      ]},
+      { key: "setting", label: "Setting", type: "select", options: [
+        { label: "Enchanted forest", value: "an enchanted forest with glowing mushrooms and ancient trees" },
+        { label: "Castle hall", value: "a grand castle hall with torches and banners" },
+        { label: "Starry night", value: "a starry night sky with a crescent moon and mystical aurora" },
+        { label: "Mountain peak", value: "a misty mountain peak at dawn" },
+      ]},
+    ],
+    generatePrompt: (cfg) =>
+      `Fantasy character portrait of a person transformed into ${cfg.archetype || "an elven being"}. ` +
+      `Setting: ${cfg.setting || "an enchanted forest with glowing mushrooms"}. ` +
+      `Photorealistic fantasy art, dramatic cinematic lighting, 85mm lens, Canon R5, RAW quality. ` +
+      `The subject's facial structure remains recognisable beneath the fantasy transformation.`,
+  },
 ];
 
 export function getSpecialty(id: string): Specialty | undefined {

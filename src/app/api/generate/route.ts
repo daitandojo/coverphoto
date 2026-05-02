@@ -85,6 +85,10 @@ export async function POST(request: Request) {
       if (c.lookingAway) r += "\n\nCONSTRAINT: The subject is looking away from the camera. Gaze directed off-camera, into the distance. Candid, contemplative mood.";
       if (c.dramatic) r += "\n\nCONSTRAINT: Dramatic, low-key lighting setup. Deep shadows, high contrast. Single strong key light. Cinematic, moody atmosphere. Chiaroscuro effect.";
       if (c.vintage) r += "\n\nCONSTRAINT: Vintage aesthetic. Warm sepia or desaturated tones. Classic retro styling. Film grain texture. Timeless, old-school photography look.";
+      if (c.friendly) r += "\n\nCONSTRAINT: Warm, friendly, approachable expression. Open body language. A welcoming, kind smile. The subject looks like a trusted friend.";
+      if (c.tanned) r += "\n\nCONSTRAINT: Sun-kissed, tanned skin tone. Warm bronze glow. Healthy, outdoor complexion. Sunkissed look.";
+      if (c.makeUp) r += "\n\nCONSTRAINT: Full professional makeup. Bold lipstick, defined eyes, flawless complexion. Glamorous, editorial makeup style.";
+      if (c.onHoliday) r += "\n\nCONSTRAINT: Holiday or vacation setting. Relaxed, casual, carefree vibe. Natural sunlight, warm atmosphere. Leisurely attire.";
       return r;
     }
 

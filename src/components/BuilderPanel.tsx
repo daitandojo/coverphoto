@@ -24,9 +24,9 @@ export default function BuilderPanel({ onGenerate, canGenerate, reason }: Builde
 
   return (
     <div className="space-y-3 flex flex-col h-full">
-      <div className="flex-shrink-0">
+      <div className="flex items-center justify-between flex-shrink-0">
         <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Portrait Builder</span>
-        <p className="text-xs text-[#C8B99A] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""} to generate</p>
+        <span className="text-xs text-[#C8B99A]" style={{ fontFamily: "'DM Mono', monospace" }}>{total} portrait{total !== 1 ? "s" : ""} to generate</span>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
@@ -124,12 +124,12 @@ export default function BuilderPanel({ onGenerate, canGenerate, reason }: Builde
       </div>
 
       {/* Footer with GENERATE */}
-      <div className="flex-shrink-0 space-y-2 pt-2 border-t border-white/5">
+      <div className="flex-shrink-0 space-y-1.5 pt-1.5 border-t border-white/5">
         {/* Prompt constraints */}
         <div>
-          <p className="text-[9px] tracking-[0.25em] text-[rgba(240,237,232,0.15)] uppercase mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>Prompt Constraints</p>
-          <div className="flex flex-wrap gap-1.5">
-            {[{ key: "lookAtCamera", label: "👁 Looking into camera" }, { key: "bright", label: "☀️ Bright" }, { key: "winking", label: "😉 Winking" }, { key: "naked", label: "🧍 Full body" }, { key: "smiling", label: "😊 Smiling" }, { key: "flirty", label: "😏 Flirty" }, { key: "serious", label: "🧐 Serious" }, { key: "lookingAway", label: "👀 Looking away" }, { key: "dramatic", label: "🎭 Dramatic" }, { key: "vintage", label: "📷 Vintage" }].map((c) => {
+          <p className="text-[8px] tracking-[0.25em] text-[rgba(240,237,232,0.15)] uppercase mb-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>Prompt</p>
+          <div className="flex flex-wrap gap-1">
+            {[{ key: "lookAtCamera", label: "👁 Into camera" }, { key: "bright", label: "☀️ Bright" }, { key: "winking", label: "😉 Winking" }, { key: "naked", label: "🧍 Full body" }, { key: "smiling", label: "😊 Smiling" }, { key: "flirty", label: "😏 Flirty" }, { key: "serious", label: "🧐 Serious" }, { key: "lookingAway", label: "👀 Look away" }, { key: "dramatic", label: "🎭 Dramatic" }, { key: "vintage", label: "📷 Vintage" }, { key: "friendly", label: "🤝 Friendly" }, { key: "tanned", label: "☀️ Tanned" }, { key: "makeUp", label: "💄 Make up" }, { key: "onHoliday", label: "🏖 On holiday" }].map((c) => {
               const on = constraints[c.key];
               return (
                 <button key={c.key} onClick={() => toggleConstraint(c.key)}
@@ -148,7 +148,7 @@ export default function BuilderPanel({ onGenerate, canGenerate, reason }: Builde
           disabled={!canGenerate}
           whileHover={canGenerate ? { y: -1 } : {}}
           whileTap={canGenerate ? { scale: 0.98 } : {}}
-          className={`relative w-full py-3 rounded-xl text-center transition-all duration-200 ${
+          className={`relative w-full py-2 rounded-xl text-center transition-all duration-200 ${
             canGenerate
               ? "border border-[#C8B99A] cursor-pointer text-[#C8B99A] bg-[rgba(200,185,154,0.06)] gas-glow"
               : "border border-white/5 opacity-40 cursor-not-allowed text-[rgba(240,237,232,0.3)]"
