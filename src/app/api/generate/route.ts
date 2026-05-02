@@ -92,6 +92,8 @@ if (c.onHoliday) r += "\n\nCONSTRAINT: Holiday or vacation setting. Relaxed, cas
 if (c.blackWhite) r += "\n\nCONSTRAINT: Black and white monochrome. No colour. Classic black and white photography. Silver gelatin print aesthetic. High contrast monochrome.";
 if (c.withOthers) r += "\n\nCONSTRAINT: The subject is surrounded by other real people in the scene — friends, family, or colleagues. The other people must look natural and realistic, not like AI-generated models. Imperfect, genuine human faces. Normal body types. Casual, authentic interactions. No perfectly polished models. The scene should feel like a real candid moment with real people.";
 if (c.active) r += "\n\nCONSTRAINT: The subject is shown in an active, dynamic situation — cycling, driving a car, working out at the gym, hiking, dancing, playing a sport, or similar. The activity should look natural and spontaneous. Choose a random activity each time — vary it across different generations. Action shot, mid-motion, energetic vibe.";
+if (c.passionate) r += "\n\nCONSTRAINT: Intense, passionate expression. Deep emotion in the eyes. Strong, burning gaze. The subject looks deeply engaged, fiercely loving, or profoundly moved. Dramatic, soulful, powerful presence.";
+if (c.kissing) r += "\n\nCONSTRAINT: The subject is kissing someone — a romantic partner. A genuine, tender kiss. Warm, intimate moment. Close embrace, eyes closed or half-closed. The other person should look natural and realistic, not AI-perfect.";
 return r;
     }
 

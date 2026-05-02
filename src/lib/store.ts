@@ -98,7 +98,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   specialCounters: makeTC(),
   specialFields: {},
 
-  constraints: { lookAtCamera: false, bright: false, winking: false, naked: false, smiling: false, flirty: false, serious: false, lookingAway: false, dramatic: false, vintage: false, friendly: false, tanned: false, makeUp: false, onHoliday: false, blackWhite: false, withOthers: false, active: false },
+  constraints: { lookAtCamera: false, bright: false, winking: false, naked: false, smiling: false, flirty: false, serious: false, lookingAway: false, dramatic: false, vintage: false, friendly: false, tanned: false, makeUp: false, onHoliday: false, blackWhite: false, withOthers: false, active: false, passionate: false, kissing: false },
 
   setCredits: (c) => set({ credits: c }),
   completeFirstRun: () => set({ isFirstRun: false }),
