@@ -40,7 +40,7 @@ interface PortraitStore {
   addToWorkbench: (types: string[]) => void;
   updateWorkbenchPortrait: (id: string, u: Partial<PortraitImage>) => void;
   moveToLibrary: (id: string) => Promise<void>;
-  dismissFromWorkbench: (id: string) => void;
+  dismissFromWorkbench: (id: string) => Promise<void>;
   deleteFromLibrary: (id: string) => Promise<void>;
   setShowShareCard: (s: boolean) => void;
   setSessionId: (s: string | null) => void;
@@ -132,10 +132,12 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     try { await fetch("/api/library/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ portraits: updatedLibrary }) }); } catch {}
   },
 
-  dismissFromWorkbench: (id) => set((s) => {
+  dismissFromWorkbench: async (id) => {
+    const s = get();
     const idx = s.workbenchPortraits.findIndex((p) => p.id === id);
-    return { workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), wbIdx: Math.max(0, Math.min(idx, s.wbIdx - 1)) };
-  }),
+    set({ workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), wbIdx: Math.max(0, Math.min(idx, s.wbIdx - 1)) });
+    try { await fetch("/api/library/dismiss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); } catch {}
+  },
 
   deleteFromLibrary: async (id) => {
     const s = get();
