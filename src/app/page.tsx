@@ -81,6 +81,12 @@ export default function Home() {
     usePortraitStore.getState().addToWorkbench(allTypes);
 
     try {
+      // Check if uploaded images have valid files (restored images from session have dummy files)
+      const hasValidFiles = uploadedImages.every((img) => img.file && img.file.size > 0);
+      if (!hasValidFiles) {
+        toast("Uploaded reference images are not available in this session. Please re-upload.", { className: "toast-custom", icon: "◎", duration: 5000 });
+        return;
+      }
       const imagesBase64 = await Promise.all(uploadedImages.map((img) => fileToBase64(img.file)));
       const res = await fetch("/api/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },

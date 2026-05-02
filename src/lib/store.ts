@@ -108,7 +108,23 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
 
   saveState: async () => {
     const s = get();
-    try { await fetch("/api/state/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uploadedImages: s.uploadedImages, libraryPortraits: s.libraryPortraits, workbenchPortraits: s.workbenchPortraits }) }); } catch {}
+    // Convert blob URLs to data URLs so they survive reload
+    const uploadedImages = await Promise.all(s.uploadedImages.map(async (img) => {
+      let preview = img.preview;
+      if (preview && preview.startsWith("blob:")) {
+        try {
+          const resp = await fetch(preview);
+          const blob = await resp.blob();
+          preview = await new Promise<string>((resolve) => {
+            const r = new FileReader();
+            r.onloadend = () => resolve(r.result as string);
+            r.readAsDataURL(blob);
+          });
+        } catch {}
+      }
+      return { id: img.id, preview };
+    }));
+    try { await fetch("/api/state/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uploadedImages, libraryPortraits: s.libraryPortraits, workbenchPortraits: s.workbenchPortraits }) }); } catch {}
   },
 
   addToWorkbench: (types) => {
@@ -172,8 +188,9 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     const portraits: PortraitImage[] = (data.portraits || []).map((p: any, i: number) => ({
       id: p.id || `restored-${i}`, url: p.url || "", style: p.style || "executive", status: "completed", error: p.error,
     }));
-    const uploadedImages: UploadedImage[] = (data.uploadedImages || []).map((img: any) => ({
-      id: img.id || `restored-img-${Math.random()}`, file: new File([], "restored"), preview: img.preview || "",
+    // Only restore uploaded images that have valid data URLs (blob URLs don't survive reload)
+    const uploadedImages: UploadedImage[] = (data.uploadedImages || []).filter((img: any) => img.preview && img.preview.startsWith("data:")).map((img: any) => ({
+      id: img.id || `restored-img-${Math.random()}`, file: new File([], "restored"), preview: img.preview,
     }));
     set({ libraryPortraits: portraits, uploadedImages, credits: data.credits });
   },
