@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 import { BRIEFS } from "@/lib/prompts";
 import { SPECIALTIES } from "@/lib/specialties";
+import { useSession } from "next-auth/react";
 
 interface CarouselProps {
   items: any[];
@@ -12,7 +13,7 @@ interface CarouselProps {
   setIdx: (i: number) => void;
   label: string;
   emptyLabel: string;
-  renderActions: (item: any) => React.ReactNode;
+  renderActions: (item: any, idx: number) => React.ReactNode;
   hasOrder: boolean;
   onOrder?: (item: any) => void;
 }
@@ -72,7 +73,7 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
 
                 {isReady && (
                   <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center gap-2">
-                    {renderActions(item)}
+                    {renderActions(item, idx)}
                     {hasOrder && onOrder && (
                       <button onClick={() => onOrder(item)}
                         className="px-3 py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider"
@@ -91,18 +92,22 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
 
 export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) => void }) {
   const { libraryPortraits, workbenchPortraits, libIdx, wbIdx, setLibIdx, setWbIdx, moveToLibrary, dismissFromWorkbench, deleteFromLibrary } = usePortraitStore();
+  const { data: session } = useSession();
+  const userName = session?.user?.name?.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "CoverPhoto";
 
-  const handleDownload = useCallback(async (url: string, style: string) => {
+  const handleDownload = useCallback(async (url: string, style: string, idx: number) => {
     if (!url) return;
+    const styleName = (BRIEFS.find((b) => b.id === style)?.name || SPECIALTIES.find((s) => s.id === style)?.name || style).replace(/[^a-zA-Z0-9]/g, "_");
+    const filename = `${userName}_${styleName}_${idx + 1}.jpg`;
     try {
       const r = await fetch(url);
       const b = await r.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(b);
-      a.download = `coverphoto-${style}.jpg`;
+      a.download = filename;
       a.click();
     } catch { window.open(url, "_blank"); }
-  }, []);
+  }, [userName]);
 
   return (
     <div className="flex gap-5 h-full w-full min-h-0 overflow-hidden">
@@ -115,9 +120,9 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
           emptyLabel="No saved portraits yet"
           hasOrder={true}
           onOrder={onOrder}
-          renderActions={(item) => (
+          renderActions={(item, idx) => (
             <div className="flex gap-2">
-              <button onClick={() => handleDownload(item.url, item.style)}
+              <button onClick={() => handleDownload(item.url, item.style, idx)}
                 className="px-3 py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider"
                 style={{ fontFamily: "'DM Mono', monospace" }}>↓ Save</button>
               <button onClick={() => deleteFromLibrary(item.id)}

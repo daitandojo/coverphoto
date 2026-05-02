@@ -42,6 +42,7 @@ interface PortraitStore {
   moveToLibrary: (id: string) => Promise<void>;
   dismissFromWorkbench: (id: string) => Promise<void>;
   deleteFromLibrary: (id: string) => Promise<void>;
+  saveState: () => Promise<void>;
   setShowShareCard: (s: boolean) => void;
   setSessionId: (s: string | null) => void;
   resetWorkbench: () => void;
@@ -105,9 +106,14 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
 
   setCredits: (c) => set({ credits: c }),
   completeFirstRun: () => set({ isFirstRun: false }),
-  addUploadedImage: (img) => set((s) => ({ uploadedImages: s.uploadedImages.length < 3 ? [...s.uploadedImages, img] : s.uploadedImages })),
-  removeUploadedImage: (id) => set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })),
-  clearUploadedImages: () => set({ uploadedImages: [] }),
+  addUploadedImage: (img) => { set((s) => ({ uploadedImages: s.uploadedImages.length < 3 ? [...s.uploadedImages, img] : s.uploadedImages })); get().saveState(); },
+  removeUploadedImage: (id) => { set((s) => ({ uploadedImages: s.uploadedImages.filter((i) => i.id !== id) })); get().saveState(); },
+  clearUploadedImages: () => { set({ uploadedImages: [] }); get().saveState(); },
+
+  saveState: async () => {
+    const s = get();
+    try { await fetch("/api/state/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uploadedImages: s.uploadedImages, libraryPortraits: s.libraryPortraits, workbenchPortraits: s.workbenchPortraits }) }); } catch {}
+  },
 
   addToWorkbench: (types) => {
     const placeholders: PortraitImage[] = types.map((t) => ({
@@ -130,6 +136,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     const updatedLibrary = [...s.libraryPortraits, newItem];
     set({ workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), libraryPortraits: updatedLibrary, wbIdx: Math.max(0, s.wbIdx - 1) });
     try { await fetch("/api/library/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ portraits: updatedLibrary }) }); } catch {}
+    get().saveState();
   },
 
   dismissFromWorkbench: async (id) => {
@@ -137,6 +144,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     const idx = s.workbenchPortraits.findIndex((p) => p.id === id);
     set({ workbenchPortraits: s.workbenchPortraits.filter((p) => p.id !== id), wbIdx: Math.max(0, Math.min(idx, s.wbIdx - 1)) });
     try { await fetch("/api/library/dismiss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); } catch {}
+    get().saveState();
   },
 
   deleteFromLibrary: async (id) => {
@@ -175,7 +183,7 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   decrementSpecial: (id) => set((s) => ({ specialCounters: { ...s.specialCounters, [id]: Math.max(0, (s.specialCounters[id] || 0) - 1) } })),
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
 
-  loadSession: (data) => {
+  loadSession: (data: { portraits: any[]; uploadedImages?: any[]; credits: number }) => {
     const portraits: PortraitImage[] = (data.portraits || []).map((p: any, i: number) => ({
       id: p.id || `restored-${i}`,
       url: p.url || "",
@@ -183,6 +191,16 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
       status: "completed",
       error: p.error,
     }));
-    set({ libraryPortraits: portraits, sessionId: data.sessionId, credits: data.credits });
+    // Re-hydrate uploaded image previews as object URLs (they'll be base64 data URLs)
+    const uploadedImages: UploadedImage[] = (data.uploadedImages || []).map((img: any) => ({
+      id: img.id || `restored-img-${Math.random()}`,
+      file: new File([], "restored"),
+      preview: img.preview || "",
+    }));
+    set({
+      libraryPortraits: portraits,
+      uploadedImages,
+      credits: data.credits,
+    });
   },
 }));
