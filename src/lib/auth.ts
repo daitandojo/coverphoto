@@ -55,16 +55,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.name = session.user.name || (token.name as string) || null;
-        session.user.email = session.user.email || (token.email as string) || null;
-        session.user.image = (token.picture as string) || session.user.image || null;
-      }
-      return session;
-    },
-  },
 });
 
 // Helper: get effective credit balance for a user
