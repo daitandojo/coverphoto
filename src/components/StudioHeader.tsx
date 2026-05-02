@@ -22,7 +22,21 @@ function getInitials(name?: string | null): string {
 export default function StudioHeader({ onCreditsClick, credits, user, isGenerating }: StudioHeaderProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(user?.image || null);
+  const [profileName, setProfileName] = useState<string>(user?.name || "");
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch profile from DB to get the real image URL
+  useEffect(() => {
+    if (!user?.email) return;
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.image) setProfileImage(d.image);
+        if (d.name) setProfileName(d.name);
+      })
+      .catch(() => {});
+  }, [user?.email]);
 
   // Close on click outside
   useEffect(() => {
@@ -59,12 +73,12 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="w-9 h-9 rounded-full ring-2 ring-white/10 hover:ring-[#C8B99A]/40 transition-all overflow-hidden flex-shrink-0"
               >
-                {user.image ? (
-                  <img src={user.image} alt="" className="w-full h-full object-cover" />
+                {profileImage ? (
+                  <img src={profileImage} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-full h-full bg-[rgba(200,185,154,0.15)] flex items-center justify-center text-xs text-[#C8B99A] font-medium"
                     style={{ fontFamily: "'DM Mono', monospace" }}>
-                    {getInitials(user.name)}
+                    {getInitials(profileName || user?.name)}
                   </div>
                 )}
               </button>
@@ -95,10 +109,10 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                     className="absolute right-0 top-full mt-2 min-w-[160px] bg-[rgba(8,8,8,0.96)] border border-white/10 rounded-xl py-1.5 shadow-xl z-50"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {user.name && (
+                    {(profileName || user?.name) && (
                       <div className="px-4 py-2 text-xs text-[rgba(240,237,232,0.4)] border-b border-white/5 truncate"
                         style={{ fontFamily: "'DM Mono', monospace" }}>
-                        {user.name}
+                        {profileName || user?.name}
                       </div>
                     )}
                     <button
