@@ -49,12 +49,16 @@ export default function Home() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   useEffect(() => { const seen = sessionStorage.getItem("coverphoto_splash"); if (seen) setSplashDone(true); }, []);
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/credits").then((r) => r.json()).then((d) => { if (d.credits !== undefined) setCredits(d.credits); }).catch(() => {});
-      fetch("/api/session/current").then((r) => r.json()).then((d) => { if (d.portraits) usePortraitStore.getState().loadSession(d); }).catch(() => {});
+      setSessionLoading(true);
+      Promise.all([
+        fetch("/api/credits").then((r) => r.json()).then((d) => { if (d.credits !== undefined) setCredits(d.credits); }).catch(() => {}),
+        fetch("/api/session/current").then((r) => r.json()).then((d) => { if (d.portraits) usePortraitStore.getState().loadSession(d); }).catch(() => {}),
+      ]).finally(() => setSessionLoading(false));
       if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     }
   }, [status, setCredits]);
@@ -172,7 +176,19 @@ export default function Home() {
                 </motion.div>
               </main>
             )}
-            {status === "authenticated" && <Workbench onGenerate={handleGenerate}
+            {status === "authenticated" && sessionLoading && (
+              <main className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
+                <div className="relative w-12 h-12">
+                  <motion.div className="absolute inset-0 rounded-full border-2 border-[rgba(200,185,154,0.1)]" />
+                  <motion.div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#C8B99A]"
+                    animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+                </div>
+                <p className="text-xs text-[rgba(240,237,232,0.2)] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  Loading your studio…
+                </p>
+              </main>
+            )}
+            {status === "authenticated" && !sessionLoading && <Workbench onGenerate={handleGenerate}
               canGenerate={(() => {
                 const t = totalSelected();
                 return t >= 1 && uploadedImages.length >= 2 && credits >= t + (promptEditEnabled ? 2 : 0) && !generating;

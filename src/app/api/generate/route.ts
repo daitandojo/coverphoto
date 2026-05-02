@@ -79,6 +79,12 @@ export async function POST(request: Request) {
       if (c.bright) r += "\n\nCONSTRAINT: Bright, well-lit environment. High-key lighting. No dark shadows. The scene should be brightly illuminated.";
       if (c.winking) r += "\n\nCONSTRAINT: The subject must be winking with one eye. One eye closed, the other open. A playful wink.";
       if (c.naked) r += "\n\nCONSTRAINT: Full body shot. The entire person is visible from head to toe. Full height portrait showing the complete figure. Not just a headshot or bust.";
+      if (c.smiling) r += "\n\nCONSTRAINT: The subject has a warm, genuine smile. Happy expression. Teeth visible or closed-mouth smile. Friendly and approachable.";
+      if (c.flirty) r += "\n\nCONSTRAINT: Playful, flirtatious expression. Slight smirk, head tilted. Mischievous glint in the eyes. Confident and coy.";
+      if (c.serious) r += "\n\nCONSTRAINT: Serious, stern expression. No smile. Neutral or intense gaze. Composed, professional, no-nonsense demeanor.";
+      if (c.lookingAway) r += "\n\nCONSTRAINT: The subject is looking away from the camera. Gaze directed off-camera, into the distance. Candid, contemplative mood.";
+      if (c.dramatic) r += "\n\nCONSTRAINT: Dramatic, low-key lighting setup. Deep shadows, high contrast. Single strong key light. Cinematic, moody atmosphere. Chiaroscuro effect.";
+      if (c.vintage) r += "\n\nCONSTRAINT: Vintage aesthetic. Warm sepia or desaturated tones. Classic retro styling. Film grain texture. Timeless, old-school photography look.";
       return r;
     }
 

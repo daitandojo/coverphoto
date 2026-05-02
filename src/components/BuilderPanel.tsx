@@ -129,7 +129,7 @@ export default function BuilderPanel({ onGenerate, canGenerate, reason }: Builde
         <div>
           <p className="text-[9px] tracking-[0.25em] text-[rgba(240,237,232,0.15)] uppercase mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>Prompt Constraints</p>
           <div className="flex flex-wrap gap-1.5">
-            {[{ key: "lookAtCamera", label: "👁 Looking into camera" }, { key: "bright", label: "☀️ Bright" }, { key: "winking", label: "😉 Winking" }, { key: "naked", label: "🧍 Full body" }].map((c) => {
+            {[{ key: "lookAtCamera", label: "👁 Looking into camera" }, { key: "bright", label: "☀️ Bright" }, { key: "winking", label: "😉 Winking" }, { key: "naked", label: "🧍 Full body" }, { key: "smiling", label: "😊 Smiling" }, { key: "flirty", label: "😏 Flirty" }, { key: "serious", label: "🧐 Serious" }, { key: "lookingAway", label: "👀 Looking away" }, { key: "dramatic", label: "🎭 Dramatic" }, { key: "vintage", label: "📷 Vintage" }].map((c) => {
               const on = constraints[c.key];
               return (
                 <button key={c.key} onClick={() => toggleConstraint(c.key)}
