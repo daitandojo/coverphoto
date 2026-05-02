@@ -154,8 +154,8 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-2xl md:text-3xl leading-snug max-w-sm text-[rgba(240,237,232,0.4)] italic"
-                style={{ fontFamily: "'Cormorant Garamond', serif" }}
+                className="text-lg md:text-xl leading-relaxed max-w-[65%] text-[rgba(240,237,232,0.4)] italic"
+                style={{ fontFamily: "'Times New Roman', Times, serif" }}
               >
                 Upload reference images from the left panel, then choose your portrait styles in the builder on the right. Your generated portraits will appear here.
               </motion.p>
