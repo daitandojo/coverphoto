@@ -35,7 +35,7 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
 
       <div
         {...getRootProps()}
-        className={`relative rounded-xl border-2 border-dashed p-4 md:p-6 text-center cursor-pointer transition-all ${isDragActive ? "border-[#C8B99A] bg-[rgba(200,185,154,0.05)]" : "border-white/10 hover:border-white/20"}`}
+        className={`relative rounded-xl border-2 border-dashed p-3 md:p-6 text-center cursor-pointer transition-all ${isDragActive ? "border-[#C8B99A] bg-[rgba(200,185,154,0.05)]" : "border-white/10 hover:border-white/20"}`}
       >
         <input {...getInputProps()} />
         <svg className="mx-auto mb-2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(200,185,154,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -43,9 +43,9 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
         </svg>
         <p className="text-[11px] text-[rgba(240,237,232,0.4)] mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>Drop images here</p>
         <div className="flex flex-col gap-2">
-          <span className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default" style={{ fontFamily: "'DM Mono', monospace" }}>📁 Browse</span>
+          <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-white/10 text-[10px] md:text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default" style={{ fontFamily: "'DM Mono', monospace" }}>📁 Browse</span>
           <button onClick={(e) => { e.stopPropagation(); onCameraClick(); }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#C8B99A]/30 text-xs text-[#C8B99A] hover:bg-[rgba(200,185,154,0.08)] transition-all font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-[#C8B99A]/30 text-[10px] md:text-xs text-[#C8B99A] hover:bg-[rgba(200,185,154,0.08)] transition-all font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
             <span className="text-sm">📷</span> Use Camera
           </button>
         </div>
@@ -53,14 +53,14 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
 
       <AnimatePresence mode="popLayout">
         {uploadedImages.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5 md:space-y-2">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1 md:space-y-2">
             {uploadedImages.map((img) => (
               <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative group w-full">
-                <div className="w-full aspect-[16/9] md:aspect-[3/2] rounded-lg overflow-hidden ring-1 ring-white/10">
+                <div className="w-full h-16 md:h-auto md:aspect-[16/9] rounded-lg overflow-hidden ring-1 ring-white/10">
                   <img src={img.preview} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button onClick={() => removeUploadedImage(img.id)}
-                  className="absolute top-2 right-2 w-7 h-7 min-h-[28px] min-w-[28px] rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-xs text-white/70 hover:text-white transition-all touch-always-show">×</button>
+                  className="absolute top-1 right-1 w-5 h-5 min-h-[20px] min-w-[20px] rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-[9px] text-white/70 hover:text-white transition-all touch-always-show">×</button>
               </motion.div>
             ))}
           </motion.div>
