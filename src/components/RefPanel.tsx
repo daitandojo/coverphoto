@@ -42,10 +42,10 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
         <p className="text-[11px] text-[rgba(240,237,232,0.4)] mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>Drop images here</p>
-        <div className="flex flex-col gap-2">
-          <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-white/10 text-[10px] md:text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default" style={{ fontFamily: "'DM Mono', monospace" }}>📁 Browse</span>
+        <div className="flex gap-2 justify-center">
+          <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default transition-all gold-corner-effect" style={{ fontFamily: "'DM Mono', monospace" }}>📁 Browse</span>
           <button onClick={(e) => { e.stopPropagation(); onCameraClick(); }}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg border border-[#C8B99A]/30 text-[10px] md:text-xs text-[#C8B99A] hover:bg-[rgba(200,185,154,0.08)] transition-all font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#C8B99A]/30 text-xs text-[#C8B99A] hover:bg-[rgba(200,185,154,0.08)] transition-all font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
             <span className="text-sm">📷</span> Use Camera
           </button>
         </div>
@@ -53,11 +53,11 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
 
       <AnimatePresence mode="popLayout">
         {uploadedImages.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1 md:space-y-2">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 md:space-y-3">
             {uploadedImages.map((img) => (
               <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative group w-full">
-                <div className="w-full h-16 md:h-auto md:aspect-[16/9] rounded-lg overflow-hidden ring-1 ring-white/10">
-                  <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                <div className="w-full h-28 md:h-52 md:aspect-[3/2] rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20">
+                  <img src={img.preview} alt="" className="w-full h-full object-contain" />
                 </div>
                 <button onClick={() => removeUploadedImage(img.id)}
                   className="absolute top-1 right-1 w-5 h-5 min-h-[20px] min-w-[20px] rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-[9px] text-white/70 hover:text-white transition-all touch-always-show">×</button>
