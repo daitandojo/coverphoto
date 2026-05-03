@@ -86,6 +86,49 @@ function ScatterImage({
   );
 }
 
+/* ==================== SAMPLE CARD ==================== */
+
+function SampleCard({ img, i, setIdx, phase }: { img: string; i: number; setIdx: number; phase: string }) {
+  return (
+    <motion.div
+      key={`${setIdx}-${i}`}
+      initial={phase === "enter" ? { opacity: 0, scale: 0.7 } : { opacity: 1, scale: 1 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, delay: phase === "enter" ? i * 0.5 : 0, ease: "easeOut" }}
+      className="group relative"
+    >
+      <span className="gold-corner top-left" />
+      <span className="gold-corner top-right" />
+      <span className="gold-corner bottom-left" />
+      <span className="gold-corner bottom-right" />
+
+      <div className="relative w-[120px] h-[155px] sm:w-[170px] sm:h-[220px] md:w-[200px] md:h-[260px] lg:w-[220px] lg:h-[290px] rounded-lg ring-1 ring-white/[0.06] bg-[rgba(255,255,255,0.02)]">
+        {phase === "scatter" ? (
+          <ScatterImage src={`/samples/${img}.png`} index={i} rotation={ROTATIONS[i]} />
+        ) : (
+          <motion.div
+            initial={phase === "enter" ? { opacity: 0 } : { opacity: 1 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: phase === "enter" ? i * 0.5 : 0 }}
+            whileHover={{ scale: 1.05, y: -4 }}
+            className="relative w-full h-full rounded-lg overflow-hidden"
+            style={{ transform: `rotate(${ROTATIONS[i]}deg)` }}
+          >
+            <img src={`/samples/${img}.png`} alt=""
+              className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:saturate-110" />
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+            <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] uppercase tracking-[0.2em] text-[rgba(240,237,232,0.25)] group-hover:text-[#C8B99A] transition-colors">
+              <span className="px-2 py-0.5 rounded" style={{ fontFamily: "'DM Mono', monospace", background: "rgba(0,0,0,0.4)" }}>
+                {STYLE_TAGS[i]}
+              </span>
+            </p>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 /* ==================== GALLERY ==================== */
 
 export default function SampleGallery() {
@@ -133,74 +176,26 @@ export default function SampleGallery() {
       transition={{ duration: 0.6, delay: 0.3 }}
       className="flex flex-col items-center gap-6"
     >
-      {/* Row of 4 portraits */}
-      <div className="flex flex-row items-center justify-center -space-x-8 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
-        {set.images.map((img, i) => (
-          <motion.div
-            key={`${setIdx}-${i}`}
-            initial={
-              phase === "enter"
-                ? { opacity: 0, scale: 0.7 }
-                : { opacity: 1, scale: 1 }
-            }
-            animate={
-              phase === "enter"
-                ? { opacity: 1, scale: 1 }
-                : { opacity: 1, scale: 1 }
-            }
-            transition={{
-              duration: 0.6,
-              delay: phase === "enter" ? i * 0.5 : 0,
-              ease: "easeOut",
-            }}
-            className="group relative"
-          >
-            {/* Gold corners */}
-            <span className="gold-corner top-left" />
-            <span className="gold-corner top-right" />
-            <span className="gold-corner bottom-left" />
-            <span className="gold-corner bottom-right" />
-
-            <div
-              className="relative w-[120px] h-[155px] sm:w-[170px] sm:h-[220px] md:w-[200px] md:h-[260px] lg:w-[220px] lg:h-[290px] rounded-lg ring-1 ring-white/[0.06] bg-[rgba(255,255,255,0.02)] -mr-10 sm:-mr-0"
-            >
-              {phase === "scatter" ? (
-                <ScatterImage
-                  src={`/samples/${img}.png`}
-                  index={i}
-                  rotation={ROTATIONS[i]}
-                />
-              ) : (
-                <motion.div
-                  initial={phase === "enter" ? { opacity: 0 } : { opacity: 1 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.7, delay: phase === "enter" ? i * 0.5 : 0 }}
-                  whileHover={{ scale: 1.05, y: -4 }}
-                  className="relative w-full h-full rounded-lg overflow-hidden"
-                  style={{ transform: `rotate(${ROTATIONS[i]}deg)` }}
-                >
-                  <img
-                    src={`/samples/${img}.png`}
-                    alt=""
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 group-hover:saturate-110"
-                  />
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
-                  <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] uppercase tracking-[0.2em] text-[rgba(240,237,232,0.25)] group-hover:text-[#C8B99A] transition-colors">
-                    <span
-                      className="px-2 py-0.5 rounded"
-                      style={{
-                        fontFamily: "'DM Mono', monospace",
-                        background: "rgba(0,0,0,0.4)",
-                      }}
-                    >
-                      {STYLE_TAGS[i]}
-                    </span>
-                  </p>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        ))}
+      {/* Mobile: 2 rows of 2, overlapped. Desktop: single row */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
+        {/* Row 1 (indices 0, 1) — slight overlap */}
+        <div className="flex flex-row items-center justify-center -space-x-6 sm:hidden">
+          {set.images.slice(0, 2).map((img, i) => (
+            <SampleCard key={`${setIdx}-${i}`} img={img} i={i} setIdx={setIdx} phase={phase} />
+          ))}
+        </div>
+        {/* Row 2 (indices 2, 3) — shifted 30% right */}
+        <div className="flex flex-row items-center justify-center -space-x-6 sm:hidden ml-[30%]">
+          {set.images.slice(2, 4).map((img, i) => (
+            <SampleCard key={`${setIdx}-${i + 2}`} img={img} i={i + 2} setIdx={setIdx} phase={phase} />
+          ))}
+        </div>
+        {/* Desktop: all 4 in one row */}
+        <div className="hidden sm:flex flex-row items-center justify-center gap-3 md:gap-4 lg:gap-6">
+          {set.images.map((img, i) => (
+            <SampleCard key={`${setIdx}-${i}`} img={img} i={i} setIdx={setIdx} phase={phase} />
+          ))}
+        </div>
       </div>
 
 
