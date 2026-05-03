@@ -178,7 +178,7 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
     <div className="flex flex-col md:flex-row gap-2 md:gap-5 h-full w-full min-h-0 overflow-y-auto md:overflow-hidden">
       {/* LIBRARY — only shown when it has images */}
       {displayPortraits.length > 0 && (
-        <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "w-1/2" : "w-1/2 mx-auto"}`}>
+        <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "w-full md:w-1/2" : "w-full md:w-1/2 md:mx-auto"}`}>
           <Carousel
             items={displayPortraits}
             idx={displayIdx}
