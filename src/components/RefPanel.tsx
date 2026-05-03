@@ -29,26 +29,28 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex items-center justify-between flex-shrink-0">
-        <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Reference</span>
+        <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Reference Images</span>
         <span className="text-xs text-[rgba(240,237,232,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>{uploadedImages.length}/3</span>
       </div>
 
       <div
         {...getRootProps()}
-        className={`relative rounded-xl border-2 border-dashed p-3 md:p-6 text-center cursor-pointer transition-all ${isDragActive ? "border-[#C8B99A] bg-[rgba(200,185,154,0.05)]" : "border-white/10 hover:border-white/20"}`}
+        className={`relative rounded-xl border-0 md:border-2 md:border-dashed p-0 md:p-4 text-center cursor-pointer transition-all ${isDragActive ? "border-[#C8B99A] bg-[rgba(200,185,154,0.05)]" : "md:border-white/10 hover:border-white/20"}`}
       >
         <input {...getInputProps()} />
-        <svg className="mx-auto mb-2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(200,185,154,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-        </svg>
-        <p className="hidden md:block text-[11px] text-[rgba(240,237,232,0.4)] mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>Drop images here</p>
-        <div className="flex gap-2 justify-center">
-          <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default transition-all gold-corner-effect" style={{ fontFamily: "'DM Mono', monospace" }}>📁 Browse</span>
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default transition-all" style={{ fontFamily: "'DM Mono', monospace" }}>
+            <svg className="inline-block" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Browse
+          </span>
           <button onClick={(e) => { e.stopPropagation(); onCameraClick(); }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#C8B99A]/30 text-xs text-[#C8B99A] hover:bg-[rgba(200,185,154,0.08)] transition-all font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
             <span className="text-sm">📷</span> Use Camera
           </button>
         </div>
+        <p className="hidden md:block text-[11px] text-[rgba(240,237,232,0.3)] mt-2" style={{ fontFamily: "'DM Mono', monospace" }}>Tap or drag to upload</p>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
