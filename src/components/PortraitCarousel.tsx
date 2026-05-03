@@ -120,7 +120,7 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
                     {hasOrder && onOrder && (
                       <button onClick={() => onOrder(item)}
                         className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[9px] md:text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                        style={{ fontFamily: "'DM Mono', monospace" }}>📬 Order</button>
+                        style={{ fontFamily: "'DM Mono', monospace" }}>🖨 Print</button>
                     )}
                   </div>
                 )}

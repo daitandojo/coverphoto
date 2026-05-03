@@ -46,7 +46,6 @@ export default function OrderMailModal({ open, onClose }: OrderMailModalProps) {
 
     setSending(true);
     try {
-      // Send email to coverphoto@gmail.com
       const res = await fetch("/api/order-mail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,7 +53,7 @@ export default function OrderMailModal({ open, onClose }: OrderMailModalProps) {
       });
       if (!res.ok) throw new Error("Order failed");
       setCredits(credits - totalCost);
-      toast("Order placed! We will be in touch.", { className: "toast-custom", icon: "✓" });
+      toast("Order received! We will process it and contact you.", { className: "toast-custom", icon: "✓" });
       onClose();
     } catch {
       toast("Order failed. Please try again.", { className: "toast-custom", icon: "⚠" });
@@ -73,14 +72,16 @@ export default function OrderMailModal({ open, onClose }: OrderMailModalProps) {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
             className="glass rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg text-[#F0EDE8]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>Order by Mail</h3>
+              <h3 className="text-lg text-[#F0EDE8]" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>
+                Print Order
+              </h3>
               <button onClick={onClose} className="w-7 h-7 rounded-full border border-white/10 flex items-center justify-center text-white/50 hover:text-white/90 text-sm">×</button>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <p className="text-[10px] text-[rgba(240,237,232,0.4)] mb-1 uppercase tracking-wider" style={{ fontFamily: "'DM Mono', monospace" }}>Base cost: 8 credits</p>
-              </div>
+              <p className="text-[10px] text-[rgba(240,237,232,0.25)] leading-relaxed" style={{ fontFamily: "'DM Mono', monospace" }}>
+                This sends a print request to the CoverPhoto team. You will be contacted to confirm your order and arrange payment and delivery. Prints are not automatic — we manually process each order.
+              </p>
 
               <div>
                 <p className="text-[10px] text-[rgba(240,237,232,0.4)] mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>Size + cost</p>
@@ -119,14 +120,14 @@ export default function OrderMailModal({ open, onClose }: OrderMailModalProps) {
               </div>
 
               <p className="text-xs text-[rgba(240,237,232,0.3)] text-center" style={{ fontFamily: "'DM Mono', monospace" }}>
-                Total: {totalCost} credits · {credits} available
+                Cart total: {totalCost} credits · {credits} available
               </p>
 
               <motion.button onClick={handleOrder} disabled={sending}
                 whileHover={!sending ? { scale: 1.02 } : {}}
                 className="w-full py-3 rounded-xl border border-[#C8B99A]/40 text-xs text-[#C8B99A] disabled:opacity-40"
                 style={{ fontFamily: "'DM Mono', monospace" }}>
-                {sending ? "Sending..." : "Place Order"}
+                {sending ? "Submitting…" : "Add to cart"}
               </motion.button>
             </div>
           </motion.div>

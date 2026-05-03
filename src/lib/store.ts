@@ -192,6 +192,6 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
     const uploadedImages: UploadedImage[] = (data.uploadedImages || []).filter((img: any) => img.preview && img.preview.startsWith("data:")).map((img: any) => ({
       id: img.id || `restored-img-${Math.random()}`, file: new File([], "restored"), preview: img.preview,
     }));
-    set({ libraryPortraits: portraits, uploadedImages, credits: data.credits });
+    set({ libraryPortraits: portraits, uploadedImages });
   },
 }));
