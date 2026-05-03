@@ -185,9 +185,12 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setSpecialField: (id, key, value) => set((s) => ({ specialFields: { ...s.specialFields, [id]: { ...(s.specialFields[id] || {}), [key]: value } } })),
 
   loadSession: (data) => {
-    const portraits: PortraitImage[] = (data.portraits || []).map((p: any, i: number) => ({
-      id: p.id || `restored-${i}`, url: p.url || "", style: p.style || "executive", status: "completed", error: p.error,
-    }));
+    // Only restore portraits that have a valid URL (skip error placeholders with empty URLs)
+    const portraits: PortraitImage[] = (data.portraits || [])
+      .filter((p: any) => p && p.url && (p.url.startsWith("http") || p.url.startsWith("data:")))
+      .map((p: any, i: number) => ({
+        id: p.id || `restored-${i}`, url: p.url, style: p.style || "executive", status: "completed", error: p.error,
+      }));
     // Only restore uploaded images that have valid data URLs (blob URLs don't survive reload)
     const uploadedImages: UploadedImage[] = (data.uploadedImages || []).filter((img: any) => img.preview && img.preview.startsWith("data:")).map((img: any) => ({
       id: img.id || `restored-img-${Math.random()}`, file: new File([], "restored"), preview: img.preview,
