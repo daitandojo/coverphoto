@@ -10,6 +10,8 @@ import BuyCreditsModal from "@/components/BuyCreditsModal";
 import ConfettiBurst from "@/components/ConfettiBurst";
 import SplashScreen from "@/components/SplashScreen";
 import SampleGallery from "@/components/SampleGallery";
+import LandingSteps from "@/components/LandingSteps";
+import SocialProof from "@/components/SocialProof";
 import Workbench from "@/components/Workbench";
 import ErrorModal from "@/components/ErrorModal";
 import EmailAuthModal from "@/components/EmailAuthModal";
@@ -170,19 +172,27 @@ export default function Home() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="h-dvh min-h-screen flex flex-col overflow-hidden">
             <StudioHeader onCreditsClick={() => setShowBuyCredits(true)} credits={credits} user={session?.user ?? null} isGenerating={generating} />
             {status === "unauthenticated" && (
-              <main className="flex-1 flex flex-col items-center justify-center gap-10 md:gap-12 px-6 min-h-0">
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center space-y-4 pt-2">
+              <main className="flex-1 flex flex-col items-center justify-center gap-8 md:gap-12 px-6 min-h-0 overflow-y-auto">
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center space-y-4 pt-4">
                   <p className="text-[10px] tracking-[0.35em] text-[#C8B99A] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Premium AI Portrait Studio</p>
                   <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#F0EDE8] leading-none tracking-tight" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>
                     Multiple perspectives.<br /><span className="text-[#C8B99A]">One you.</span>
                   </h2>
                 </motion.div>
+
+                {/* 3-step guide */}
+                <div className="w-full max-w-2xl">
+                  <LandingSteps />
+                </div>
+
+                {/* Steps indicator */}
                 <div className="flex-shrink w-full max-w-6xl"><SampleGallery /></div>
+
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }} className="text-center space-y-4">
                   <motion.button onClick={() => signIn("google")} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
-                    className="cta-corners relative px-8 py-3 rounded-lg border border-[#C8B99A]/40 text-sm text-[#C8B99A] pulse-glow bg-[rgba(200,185,154,0.04)]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                    className="cta-corners relative px-10 py-4 rounded-lg border border-[#C8B99A]/40 text-base text-[#C8B99A] pulse-glow bg-[rgba(200,185,154,0.04)]" style={{ fontFamily: "'DM Mono', monospace" }}>
                     <span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" />
-                    Continue with Google
+                    See what you look like
                   </motion.button>
                   <motion.button onClick={() => setShowEmailAuth(true)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     className="px-6 py-2.5 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.4)] hover:text-white/70 transition-all"
@@ -190,6 +200,7 @@ export default function Home() {
                     Sign in with email
                   </motion.button>
                   <p className="text-[10px] text-[rgba(240,237,232,0.15)] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>5 free credits to start — No credit card required</p>
+                  <SocialProof />
                 </motion.div>
               </main>
             )}

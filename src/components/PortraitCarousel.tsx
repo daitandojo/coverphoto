@@ -11,6 +11,8 @@ import { usePortraitStore } from "@/lib/store";
 import { BRIEFS } from "@/lib/prompts";
 import { SPECIALTIES } from "@/lib/specialties";
 import { useSession } from "next-auth/react";
+import ComparisonView from "./ComparisonView";
+import ShareModal from "./ShareModal";
 
 interface CarouselProps {
   items: any[];
@@ -186,10 +188,15 @@ function getStyleName(style: string): string {
 }
 
 export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) => void }) {
-  const { libraryPortraits, workbenchPortraits, adminMode, adminPortraits, libIdx, wbIdx, setLibIdx, setWbIdx, moveToLibrary, dismissFromWorkbench, deleteFromLibrary } = usePortraitStore();
+  const { libraryPortraits, workbenchPortraits, adminMode, adminPortraits, libIdx, wbIdx, setLibIdx, setWbIdx, moveToLibrary, dismissFromWorkbench, deleteFromLibrary, uploadedImages } = usePortraitStore();
   const { data: session } = useSession();
   const userName = session?.user?.name?.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "CoverPhoto";
   const isAdmin = session?.user?.email === "reconozco@gmail.com";
+
+  const [compareItem, setCompareItem] = useState<any>(null);
+  const [showCompare, setShowCompare] = useState(false);
+  const [shareItem, setShareItem] = useState<any>(null);
+  const [showShare, setShowShare] = useState(false);
 
   // When admin mode is on, use adminPortraits instead
   const displayPortraits = adminMode && isAdmin ? adminPortraits : libraryPortraits;
@@ -223,16 +230,24 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
             emptyLabel=""
             hasOrder={!adminMode}
             onOrder={adminMode ? undefined : onOrder}
-            renderActions={(item, idx) => (
-              <div className="flex gap-1.5 md:gap-2">
-                <button onClick={() => handleDownload(item.url, item.style, idx)}
+          renderActions={(item, idx) => (
+            <div className="flex gap-1.5 md:gap-2">
+              <button onClick={() => handleDownload(item.url, item.style, idx)}
+                className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[9px] md:text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                style={{ fontFamily: "'DM Mono', monospace" }}>↓ Save</button>
+              <button onClick={() => deleteFromLibrary(item.id)}
+                className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                style={{ fontFamily: "'DM Mono', monospace" }}>🗑 Delete</button>
+              {item.refUrls?.length > 0 && (
+                <button onClick={() => { setCompareItem(item); setShowCompare(true); }}
                   className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[9px] md:text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                  style={{ fontFamily: "'DM Mono', monospace" }}>↓ Save</button>
-                <button onClick={() => deleteFromLibrary(item.id)}
-                  className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                  style={{ fontFamily: "'DM Mono', monospace" }}>🗑 Delete</button>
-              </div>
-            )}
+                  style={{ fontFamily: "'DM Mono', monospace" }}>🔍 Compare</button>
+              )}
+              <button onClick={() => { setShareItem(item); setShowShare(true); }}
+                className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-white/15 text-[9px] md:text-[10px] text-white/80 hover:bg-white/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
+                style={{ fontFamily: "'DM Mono', monospace" }}>📤 Share</button>
+            </div>
+          )}
           />
         </motion.div>
       )}
@@ -280,6 +295,13 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
           </motion.div>
         )}
       </AnimatePresence>
+      <ComparisonView open={showCompare} onClose={() => setShowCompare(false)}
+        portraitUrl={compareItem?.url || ""}
+        referenceUrls={uploadedImages.map((i) => i.preview)} />
+      <ShareModal open={showShare} onClose={() => setShowShare(false)}
+        portraitUrl={shareItem?.url || ""}
+        style={shareItem?.style || ""}
+        sessionId={null} />
     </div>
   );
 }
