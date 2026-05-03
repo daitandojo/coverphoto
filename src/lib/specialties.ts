@@ -120,7 +120,7 @@ const SPECIALTIES: Specialty[] = [
   },
   {
     id: "hair-style",
-    name: "Hair Style Preview",
+    name: "Hair Styles",
     description: "Six variations of the same person with different hairstyles, with and without glasses.",
     tagline: "Find your next look",
     cost: 8,
