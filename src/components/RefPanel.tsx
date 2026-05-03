@@ -35,7 +35,7 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
 
       <div
         {...getRootProps()}
-        className={`relative rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-all ${isDragActive ? "border-[#C8B99A] bg-[rgba(200,185,154,0.05)]" : "border-white/10 hover:border-white/20"}`}
+        className={`relative rounded-xl border-2 border-dashed p-4 md:p-6 text-center cursor-pointer transition-all ${isDragActive ? "border-[#C8B99A] bg-[rgba(200,185,154,0.05)]" : "border-white/10 hover:border-white/20"}`}
       >
         <input {...getInputProps()} />
         <svg className="mx-auto mb-2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(200,185,154,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -53,10 +53,10 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
 
       <AnimatePresence mode="popLayout">
         {uploadedImages.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5 md:space-y-2">
             {uploadedImages.map((img) => (
               <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative group w-full">
-                <div className="w-full aspect-[3/2] rounded-lg overflow-hidden ring-1 ring-white/10">
+                <div className="w-full aspect-[16/9] md:aspect-[3/2] rounded-lg overflow-hidden ring-1 ring-white/10">
                   <img src={img.preview} alt="" className="w-full h-full object-cover" />
                 </div>
                 <button onClick={() => removeUploadedImage(img.id)}
