@@ -54,19 +54,19 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
       <div className="flex-1 min-h-0 overflow-y-auto">
         <AnimatePresence mode="popLayout">
           {uploadedImages.length > 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-2 md:gap-3 h-full">
+            <motion.div key="filmstrip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2 md:gap-3 h-full">
               {uploadedImages.map((img) => (
                 <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative flex-1 w-full min-h-0">
                   <div className="w-full h-full rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20 flex items-center justify-center">
-                  <img src={img.preview} alt="" className="w-full h-full object-contain" />
-                </div>
-                <button onClick={() => removeUploadedImage(img.id)}
-                  className="absolute top-1 right-1 w-5 h-5 min-h-[20px] min-w-[20px] rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-[9px] text-white/70 hover:text-white transition-all touch-always-show">×</button>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                    <img src={img.preview} alt="" className="w-full h-full object-contain" />
+                  </div>
+                  <button onClick={() => removeUploadedImage(img.id)}
+                    className="absolute top-1 right-1 w-5 h-5 min-h-[20px] min-w-[20px] rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-[9px] text-white/70 hover:text-white transition-all touch-always-show">×</button>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
   );
 }
