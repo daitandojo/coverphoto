@@ -31,6 +31,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
   const menuRef = useRef<HTMLDivElement>(null);
   const isAdmin = user?.email === "reconozco@gmail.com";
   const { adminMode, setAdminMode, setAdminPortraits } = usePortraitStore();
+  const portraitCount = usePortraitStore((s) => s.libraryPortraits.length + s.workbenchPortraits.length);
   const [showTerms, setShowTerms] = useState(false);
 
   // Cap credits display at 999
@@ -128,8 +129,9 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
 
               {/* Avatar — far right */}
               <div className="relative" ref={menuRef}>
-                <button
+                  <button
                   onClick={() => setMenuOpen(!menuOpen)}
+                  title={`${user?.email || "No email"} · ${portraitCount} portrait${portraitCount !== 1 ? "s" : ""}`}
                   className="w-8 h-8 md:w-9 md:h-9 rounded-full ring-2 ring-white/10 hover:ring-[#C8B99A]/40 transition-all overflow-hidden flex-shrink-0"
                 >
                   {profileImage ? (
