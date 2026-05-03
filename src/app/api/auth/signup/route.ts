@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, ref } = await request.json();
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password required" }, { status: 400 });
     }
@@ -21,16 +21,30 @@ export async function POST(request: Request) {
 
     const hashed = await bcrypt.hash(password, 12);
 
+    // Check referral — if valid, grant bonus to both users
+    let referrerBonus = false;
+    if (ref) {
+      const referrer = await prisma.user.findUnique({ where: { id: ref } });
+      if (referrer) {
+        referrerBonus = true;
+        await prisma.user.update({
+          where: { id: ref },
+          data: { credits: { increment: 5 } },
+        });
+      }
+    }
+
     await prisma.user.create({
       data: {
         email: normalizedEmail,
         name: normalizedEmail.split("@")[0],
         password: hashed,
-        credits: 5,
+        credits: referrerBonus ? 10 : 5,
+        referredBy: ref || null,
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, bonus: referrerBonus });
   } catch (error) {
     console.error("Signup error:", error);
     return NextResponse.json({ error: "Signup failed" }, { status: 500 });
