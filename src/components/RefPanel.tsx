@@ -60,7 +60,7 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
               {uploadedImages.map((img, i) => (
                 <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative flex-1 w-full min-h-0">
                   {/* Number badge — premium gold with black shadow */}
-                  <div className="absolute top-2 right-2 z-10 pointer-events-none select-none"
+                  <div className="absolute top-2 left-2 z-10 pointer-events-none select-none"
                     style={{
                       fontSize: "clamp(28px, 5vw, 48px)",
                       fontWeight: 700,
