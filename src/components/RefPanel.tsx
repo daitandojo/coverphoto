@@ -27,8 +27,8 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
   });
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full gap-3">
+      <div className="flex items-center justify-between flex-shrink-0">
         <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Reference</span>
         <span className="text-xs text-[rgba(240,237,232,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>{uploadedImages.length}/3</span>
       </div>
@@ -51,12 +51,13 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
         </div>
       </div>
 
-      <AnimatePresence mode="popLayout">
-        {uploadedImages.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 md:space-y-3">
-            {uploadedImages.map((img) => (
-              <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative group w-full">
-                <div className="w-full h-28 md:h-52 md:aspect-[3/2] rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <AnimatePresence mode="popLayout">
+          {uploadedImages.length > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-2 md:gap-3 h-full">
+              {uploadedImages.map((img) => (
+                <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative flex-1 w-full min-h-0">
+                  <div className="w-full h-full rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20 flex items-center justify-center">
                   <img src={img.preview} alt="" className="w-full h-full object-contain" />
                 </div>
                 <button onClick={() => removeUploadedImage(img.id)}

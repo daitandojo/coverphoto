@@ -76,9 +76,11 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
       <AnimatePresence>
         {mobilePanel === "left" && (
           <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="md:hidden fixed inset-0 z-40 bg-[rgba(8,8,8,0.97)] overflow-y-auto p-4 pt-12">
-            <button onClick={() => setMobilePanel(null)} className="absolute top-3 right-3 text-white/50 hover:text-white/90 text-lg w-11 h-11 flex items-center justify-center">✕</button>
-            <RefPanel onCameraClick={() => setShowCam(true)} />
+            className="md:hidden fixed inset-0 z-40 bg-[rgba(8,8,8,0.97)] overflow-hidden p-4 pt-12 flex flex-col">
+            <button onClick={() => setMobilePanel(null)} className="absolute top-3 right-3 text-white/50 hover:text-white/90 text-lg w-11 h-11 flex items-center justify-center flex-shrink-0">✕</button>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <RefPanel onCameraClick={() => setShowCam(true)} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
