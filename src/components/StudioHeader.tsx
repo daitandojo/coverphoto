@@ -7,6 +7,7 @@ import { signOut, signIn } from "next-auth/react";
 import { usePortraitStore } from "@/lib/store";
 import TermsModal from "./TermsModal";
 import PwaInstallButton from "./PwaInstallButton";
+import toast from "react-hot-toast";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -151,6 +152,13 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                         {profileName || user?.name}
                       </div>
                     )}
+                    <button onClick={() => {
+                      const link = `${window.location.origin}/ref/${encodeURIComponent(user?.email || "")}`;
+                      navigator.clipboard.writeText(link);
+                      toast("Referral link copied! Give 5, get 5.", { className: "toast-custom", icon: "🎁", duration: 3000 });
+                    }}
+                      className="w-full text-left px-4 py-2.5 text-xs text-[rgba(240,237,232,0.6)] hover:text-[#C8B99A] hover:bg-[rgba(200,185,154,0.05)] transition-colors"
+                      style={{ fontFamily: "'DM Mono', monospace" }}>🎁 Invite friends (5 credits)</button>
                     <button
                       onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
                       className="w-full text-left px-4 py-2.5 text-xs text-[rgba(240,237,232,0.6)] hover:text-[#C8B99A] hover:bg-[rgba(200,185,154,0.05)] transition-colors"

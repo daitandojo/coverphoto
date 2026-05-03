@@ -45,6 +45,7 @@ model User {
   image         String?
   password      String?
   credits       Int                     @default(5)
+  referredBy    String?
   accounts      Account[]
   sessions      Session[]
   sessionsOwned PortraitSessionRecord[]
