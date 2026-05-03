@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signOut, signIn } from "next-auth/react";
 import { usePortraitStore } from "@/lib/store";
 import TermsModal from "./TermsModal";
+import PwaInstallButton from "./PwaInstallButton";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -130,6 +131,8 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
               <button onClick={() => setShowTerms(true)}
                 className="text-[9px] px-2 py-1 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-all uppercase tracking-wider touch-safe min-w-[44px]"
                 style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
+
+              <PwaInstallButton />
 
               {/* Dropdown menu */}
               <AnimatePresence>
