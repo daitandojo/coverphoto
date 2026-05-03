@@ -134,7 +134,7 @@ export default function SampleGallery() {
       className="flex flex-col items-center gap-6"
     >
       {/* Row of 4 portraits */}
-      <div className="flex flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 min-h-0">
+      <div className="flex flex-row items-center justify-center -space-x-8 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
         {set.images.map((img, i) => (
           <motion.div
             key={`${setIdx}-${i}`}
@@ -162,7 +162,7 @@ export default function SampleGallery() {
             <span className="gold-corner bottom-right" />
 
             <div
-              className="relative w-[140px] h-[180px] sm:w-[170px] sm:h-[220px] md:w-[200px] md:h-[260px] lg:w-[220px] lg:h-[290px] rounded-lg ring-1 ring-white/[0.06] bg-[rgba(255,255,255,0.02)]"
+              className="relative w-[120px] h-[155px] sm:w-[170px] sm:h-[220px] md:w-[200px] md:h-[260px] lg:w-[220px] lg:h-[290px] rounded-lg ring-1 ring-white/[0.06] bg-[rgba(255,255,255,0.02)] -mr-10 sm:-mr-0"
             >
               {phase === "scatter" ? (
                 <ScatterImage
