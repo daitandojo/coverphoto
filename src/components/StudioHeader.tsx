@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { signOut, signIn } from "next-auth/react";
+import { usePortraitStore } from "@/lib/store";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -25,6 +26,8 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
   const [profileImage, setProfileImage] = useState<string | null>(user?.image || null);
   const [profileName, setProfileName] = useState<string>(user?.name || "");
   const menuRef = useRef<HTMLDivElement>(null);
+  const isAdmin = user?.email === "reconozco@gmail.com";
+  const { adminMode, setAdminMode, setAdminPortraits } = usePortraitStore();
 
   // Fetch profile from DB to get the real image URL
   useEffect(() => {
@@ -97,6 +100,30 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                 <span>◈</span>
                 <span>{credits} credits</span>
               </motion.button>
+
+              {/* Admin toggle */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    const newMode = !adminMode;
+                    setAdminMode(newMode);
+                    if (newMode) {
+                      fetch("/api/admin/portraits").then((r) => r.json()).then((d) => {
+                        if (d.portraits) setAdminPortraits(d.portraits);
+                      }).catch(() => {});
+                    } else {
+                      setAdminPortraits([]);
+                    }
+                  }}
+                  className={`px-2 py-1 rounded border text-[9px] uppercase tracking-wider transition-all touch-safe min-w-[44px] ${
+                    adminMode ? "border-yellow-500/60 text-yellow-400 bg-yellow-900/20" : "border-white/10 text-[rgba(240,237,232,0.3)]"
+                  }`}
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                  title={adminMode ? "Exit admin mode" : "Enter admin mode"}
+                >
+                  {adminMode ? "⚡ Admin" : "🔧 Admin"}
+                </button>
+              )}
 
               {/* Dropdown menu */}
               <AnimatePresence>

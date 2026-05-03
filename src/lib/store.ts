@@ -13,6 +13,8 @@ interface PortraitStore {
   uploadedImages: UploadedImage[];
   libraryPortraits: PortraitImage[];
   workbenchPortraits: PortraitImage[];
+  adminMode: boolean;
+  adminPortraits: any[];
   isGenerating: boolean;
   showShareCard: boolean;
   sessionId: string | null;
@@ -48,6 +50,8 @@ interface PortraitStore {
   setShowBuyCredits: (s: boolean) => void;
   setLibIdx: (i: number) => void;
   setWbIdx: (i: number) => void;
+  setAdminMode: (m: boolean) => void;
+  setAdminPortraits: (p: any[]) => void;
 
   toggleConstraint: (key: string) => void;
   setLeftPanelOpen: (o: boolean) => void;
@@ -87,6 +91,8 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   showShareCard: false,
   sessionId: null,
   showBuyCredits: false,
+  adminMode: false,
+  adminPortraits: [],
   libIdx: 0,
   wbIdx: 0,
   leftPanelOpen: true,
@@ -166,6 +172,8 @@ export const usePortraitStore = create<PortraitStore>((set, get) => ({
   setShowBuyCredits: (s) => set({ showBuyCredits: s }),
   setLibIdx: (i) => set({ libIdx: i }),
   setWbIdx: (i) => set({ wbIdx: i }),
+  setAdminMode: (m) => set({ adminMode: m }),
+  setAdminPortraits: (p) => set({ adminPortraits: p }),
 
   toggleConstraint: (key) => set((s) => ({ constraints: { ...s.constraints, [key]: !s.constraints[key] } })),
 

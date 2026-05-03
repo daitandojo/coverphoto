@@ -95,7 +95,16 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
                     <p className="text-xs text-[rgba(200,185,154,0.3)]" style={{ fontFamily: "'DM Mono', monospace" }}>{getStyleName(item.style)}</p>
                   </div>
                 ) : (
-                  <img src={item.url} alt="" className="w-full h-full object-cover" />
+                  <div className="relative w-full h-full">
+                    <img src={item.url} alt="" className={`w-full h-full object-cover ${item.ownerEmail ? "ring-2 ring-yellow-500/50" : ""}`} />
+                    {item.ownerEmail && (
+                      <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-yellow-900/70 backdrop-blur-sm flex items-center justify-between text-[8px] text-yellow-200"
+                        style={{ fontFamily: "'DM Mono', monospace" }}>
+                        <span className="truncate max-w-[120px]">{item.ownerEmail}</span>
+                        {item.createdAt && <span className="text-yellow-300/60 ml-1 flex-shrink-0">{new Date(item.createdAt).toLocaleDateString()}</span>}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {showArrows && (
@@ -141,9 +150,15 @@ function getStyleName(style: string): string {
 }
 
 export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) => void }) {
-  const { libraryPortraits, workbenchPortraits, libIdx, wbIdx, setLibIdx, setWbIdx, moveToLibrary, dismissFromWorkbench, deleteFromLibrary } = usePortraitStore();
+  const { libraryPortraits, workbenchPortraits, adminMode, adminPortraits, libIdx, wbIdx, setLibIdx, setWbIdx, moveToLibrary, dismissFromWorkbench, deleteFromLibrary } = usePortraitStore();
   const { data: session } = useSession();
   const userName = session?.user?.name?.replace(/[^a-zA-Z0-9\-_ ]/g, "").trim() || "CoverPhoto";
+  const isAdmin = session?.user?.email === "reconozco@gmail.com";
+
+  // When admin mode is on, use adminPortraits instead
+  const displayPortraits = adminMode && isAdmin ? adminPortraits : libraryPortraits;
+  const displayIdx = adminMode && isAdmin ? libIdx : libIdx;
+  const setDisplayIdx = adminMode && isAdmin ? setLibIdx : setLibIdx;
 
   const handleDownload = useCallback(async (url: string, style: string, idx: number) => {
     if (!url) return;
@@ -162,16 +177,16 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
   return (
     <div className="flex flex-col md:flex-row gap-2 md:gap-5 h-full w-full min-h-0 overflow-y-auto md:overflow-hidden">
       {/* LIBRARY — only shown when it has images */}
-      {libraryPortraits.length > 0 && (
+      {displayPortraits.length > 0 && (
         <motion.div layout className={`flex flex-col min-h-0 min-w-0 ${workbenchPortraits.length > 0 ? "w-1/2" : "w-1/2 mx-auto"}`}>
           <Carousel
-            items={libraryPortraits}
-            idx={libIdx}
-            setIdx={setLibIdx}
-            label="Library"
+            items={displayPortraits}
+            idx={displayIdx}
+            setIdx={setDisplayIdx}
+            label={adminMode && isAdmin ? "All Portraits" : "Library"}
             emptyLabel=""
-            hasOrder={true}
-            onOrder={onOrder}
+            hasOrder={!adminMode}
+            onOrder={adminMode ? undefined : onOrder}
             renderActions={(item, idx) => (
               <div className="flex gap-1.5 md:gap-2">
                 <button onClick={() => handleDownload(item.url, item.style, idx)}
