@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { signOut, signIn } from "next-auth/react";
 import { usePortraitStore } from "@/lib/store";
+import TermsModal from "./TermsModal";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -28,6 +29,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
   const menuRef = useRef<HTMLDivElement>(null);
   const isAdmin = user?.email === "reconozco@gmail.com";
   const { adminMode, setAdminMode, setAdminPortraits } = usePortraitStore();
+  const [showTerms, setShowTerms] = useState(false);
 
   // Fetch profile from DB to get the real image URL
   useEffect(() => {
@@ -125,6 +127,10 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                 </button>
               )}
 
+              <button onClick={() => setShowTerms(true)}
+                className="text-[9px] px-2 py-1 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-all uppercase tracking-wider touch-safe min-w-[44px]"
+                style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
+
               {/* Dropdown menu */}
               <AnimatePresence>
                 {menuOpen && (
@@ -166,6 +172,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
           )}
         </div>
       </div>
+      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
     </motion.header>
   );
 }

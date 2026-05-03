@@ -7,7 +7,6 @@ import RefPanel from "./RefPanel";
 import BuilderPanel from "./BuilderPanel";
 import PortraitCarousel from "./PortraitCarousel";
 import WebcamModal from "./WebcamModal";
-import TermsModal from "./TermsModal";
 import OrderMailModal from "./OrderMailModal";
 
 interface WorkbenchProps {
@@ -19,7 +18,6 @@ interface WorkbenchProps {
 export default function Workbench({ onGenerate, canGenerate, genReason }: WorkbenchProps) {
   const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, libraryPortraits, workbenchPortraits, resetWorkbench } = usePortraitStore();
   const [showCam, setShowCam] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
   const [orderItem, setOrderItem] = useState<any>(null);
   const [mobilePanel, setMobilePanel] = useState<"left" | "right" | null>(null);
@@ -166,9 +164,6 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
             <div className="flex items-center justify-between mb-2">
               <p className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</p>
               <div className="flex items-center gap-2">
-                <button onClick={() => setShowTerms(true)}
-                  className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-white/10 text-[rgba(240,237,232,0.25)] hover:text-white/60 transition-all touch-safe"
-                  style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
                 {!wbEmpty && (
                   <button onClick={resetWorkbench}
                     className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-red-500/15 text-red-400/40 hover:text-red-400/70 transition-all touch-safe"
@@ -200,7 +195,6 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
       </div>
 
       {showCam && <WebcamModal onClose={() => setShowCam(false)} />}
-      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
       {showOrder && orderItem && <OrderMailModal open={showOrder} onClose={() => { setShowOrder(false); setOrderItem(null); }} />}
     </div>
   );
