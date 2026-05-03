@@ -8,7 +8,7 @@ export interface PortraitImage {
 
 export type PortraitStyle =
   | "executive" | "founder" | "statesperson" | "outdoors"
-  | "passport" | "linkedin" | "artist" | "athlete"
+  | "artist" | "athlete"
   | "scholar" | "minimalist" | "romantic" | "maverick";
 
 export interface PortraitSession {

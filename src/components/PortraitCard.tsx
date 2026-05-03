@@ -11,8 +11,6 @@ const STYLE_LABELS: Record<string, string> = {
   founder: "Founder · Smart-casual · Warm",
   statesperson: "Statesperson · Formal · Architectural",
   outdoors: "Outdoors · Casual · Natural light",
-  passport: "Passport · Regulation · Neutral",
-  linkedin: "LinkedIn · Professional · Friendly",
   artist: "Artist · Creative · Bold",
   athlete: "Athlete · Dynamic · Dramatic",
   scholar: "Scholar · Intellectual · Warm",

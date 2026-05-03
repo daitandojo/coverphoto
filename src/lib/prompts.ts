@@ -84,48 +84,6 @@ TECHNICAL: Photorealistic, 35mm portrait lens equivalent, f/2.0, Canon R5, RAW f
 SUBJECT FIDELITY: The subject must be an exact likeness of the person in the reference images. Preserve: facial structure, eye colour, skin tone, age, distinguishing features. This is a portrait commission, not an idealisation.`,
   },
   {
-    id: "passport",
-    name: "Passport",
-    tagline: "Regulation-compliant, no shadows",
-    photographer: "Claire Hoffmann",
-    prompt: `You are Claire Hoffmann, lead passport and identity portrait specialist at CoverPhoto. Your brief for this portrait:
-
-COMPOSITION: Centered, straight-on head-and-shoulders. Subject faces camera directly. No head tilt, no rotation. Frame includes head, shoulders, and upper chest. 35mm x 45mm aspect ratio.
-
-EXPRESSION: Neutral expression — mouth closed, no smile, no raised eyebrows. Eyes open, looking directly into the lens. No squinting.
-
-LIGHTING: Completely flat, even illumination. No shadows on the face or backdrop. No Rembrandt or split lighting. Diffused key light left and right at 45°, fill from front.
-
-BACKGROUND: Pure white backdrop, evenly lit. No texture, no gradient, no backdrop stand visible.
-
-WARDROBE: Dark solid colour top — no patterns, no stripes, no turtlenecks. No jewellery that creates shadow on the neck.
-
-TECHNICAL: Photorealistic, 105mm portrait lens, f/8 for maximum depth of field. No motion blur. No hair across the face.
-
-SUBJECT FIDELITY: Exact likeness required. This portrait will be used for official identification. No retouching that alters facial structure. This is a portrait commission, not an idealisation.`,
-  },
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    tagline: "Professional headshot, friendly",
-    photographer: "Sarah Chen",
-    prompt: `You are Sarah Chen, lead professional headshot photographer at CoverPhoto, specialising in executive personal branding. Your brief for this portrait:
-
-COMPOSITION: Three-quarter body crop (head to mid-torso). Subject angled slightly (15°), head turned back toward camera. Arms folded or hands relaxed at sides. 4:5 aspect ratio.
-
-EXPRESSION: Approachable confidence — genuine smile with eyes engaged. The look a person gives when they're about to say something interesting.
-
-LIGHTING: Bright, clean key light at 30°, large softbox. Subtle rim light for separation. No harsh shadows. Catchlights in both eyes.
-
-BACKGROUND: Soft-focus office interior or blurred city skyline. Warm desaturated tones. Not white — professional but warm.
-
-WARDROBE: Business formal or smart business casual depending on industry. Solid colours, minimal patterns.
-
-TECHNICAL: Photorealistic, 85mm portrait lens, f/2.8. Clean, professional look. LinkedIn profile photo dimensions optimised.
-
-SUBJECT FIDELITY: Natural-looking skin texture preserved. Warm, approachable version of the subject. This is a portrait commission, not an idealisation.`,
-  },
-  {
     id: "artist",
     name: "The Artist",
     tagline: "Creative studio, bold palette",
