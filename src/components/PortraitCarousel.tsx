@@ -51,6 +51,17 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
   const showArrows = items.length > 1;
   const isReady = item.url && item.status === "completed";
 
+  // Double-tap fullscreen for mobile
+  const [fullscreen, setFullscreen] = useState(false);
+  const lastTap = useRef(0);
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 400 && isReady) {
+      setFullscreen(!fullscreen);
+    }
+    lastTap.current = now;
+  };
+
   // Cycle progress messages during generation
   const [progressIdx, setProgressIdx] = useState(0);
   const isGenerating = item.status === "generating" && !item.url;
@@ -96,7 +107,10 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
                   </div>
                 ) : (
                   <div className="relative w-full h-full">
-                    <img src={item.url} alt="" className={`w-full h-full object-cover ${item.ownerEmail ? "ring-2 ring-yellow-500/50" : ""}`} />
+                    <img src={item.url} alt="" className={`w-full h-full object-cover cursor-pointer ${item.ownerEmail ? "ring-2 ring-yellow-500/50" : ""}`}
+                      onClick={handleDoubleTap}
+                      onTouchEnd={(e) => { if (e.changedTouches.length === 1) handleDoubleTap(); }}
+                    />
                     {item.ownerEmail && (
                       <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-yellow-900/70 backdrop-blur-sm flex items-center justify-between text-[8px] text-yellow-200"
                         style={{ fontFamily: "'DM Mono', monospace" }}>
@@ -138,6 +152,28 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Fullscreen overlay */}
+      <AnimatePresence>
+        {fullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+            onClick={handleDoubleTap}
+          >
+            {item.url && (
+              <img src={item.url} alt="" className="max-w-full max-h-full object-contain p-4" />
+            )}
+            <button
+              onClick={() => setFullscreen(false)}
+              className="absolute top-4 right-4 w-12 h-12 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-white/70 hover:text-white text-lg"
+            >✕</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
