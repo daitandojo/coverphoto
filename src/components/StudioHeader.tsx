@@ -33,6 +33,10 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
   const { adminMode, setAdminMode, setAdminPortraits } = usePortraitStore();
   const [showTerms, setShowTerms] = useState(false);
 
+  // Cap credits display at 999
+  const displayCredits = credits > 999 ? 999 : credits;
+  const creditsLabel = credits > 999 ? "999+" : String(credits);
+
   // Fetch profile from DB to get the real image URL
   useEffect(() => {
     if (!user?.email) return;
@@ -63,38 +67,26 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="gradient-border-bottom"
     >
-      <div className="flex items-center justify-between px-6 lg:px-12 h-16">
+      <div className="flex items-center justify-between px-3 md:px-6 lg:px-12 h-14 md:h-16">
+        {/* Logo — compact on mobile, full on desktop */}
         <h1
-          className="text-xl lg:text-2xl tracking-[0.3em] text-[#F0EDE8] select-none cursor-pointer"
+          className="text-base md:text-2xl tracking-[0.15em] md:tracking-[0.3em] text-[#F0EDE8] select-none cursor-pointer"
           style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}
           onClick={() => router.push("/")}
         >
-          COVERPHOTO
+          <span className="md:hidden">CP</span>
+          <span className="hidden md:inline">COVERPHOTO</span>
         </h1>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {user ? (
-            <div className="flex items-center gap-3 relative" ref={menuRef}>
-              {/* Avatar — clickable */}
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="w-9 h-9 rounded-full ring-2 ring-white/10 hover:ring-[#C8B99A]/40 transition-all overflow-hidden flex-shrink-0"
-              >
-                {profileImage ? (
-                  <img src={profileImage} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-full h-full bg-[rgba(200,185,154,0.15)] flex items-center justify-center text-xs text-[#C8B99A] font-medium"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>
-                    {getInitials(profileName || user?.name)}
-                  </div>
-                )}
-              </button>
-
+            <>
+              {/* Credits — icon only */}
               <motion.button
                 onClick={onCreditsClick}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm ${
+                className={`flex items-center gap-1 px-2 md:px-4 py-1.5 rounded-full border text-xs md:text-sm ${
                   credits < 10
                     ? "amber-pulse border-amber-600/40 text-amber-300"
                     : "border-white/10 text-[#C8B99A]"
@@ -102,7 +94,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                 style={{ fontFamily: "'DM Mono', monospace" }}
               >
                 <span>◈</span>
-                <span>{credits} credits</span>
+                <span>{creditsLabel}</span>
               </motion.button>
 
               {/* Admin toggle */}
@@ -119,26 +111,39 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                       setAdminPortraits([]);
                     }
                   }}
-                  className={`px-2 py-1 rounded border text-[9px] uppercase tracking-wider transition-all touch-safe min-w-[44px] ${
+                  className={`hidden md:inline-flex px-2 py-1 rounded border text-[9px] uppercase tracking-wider transition-all touch-safe min-w-[44px] ${
                     adminMode ? "border-yellow-500/60 text-yellow-400 bg-yellow-900/20" : "border-white/10 text-[rgba(240,237,232,0.3)]"
                   }`}
                   style={{ fontFamily: "'DM Mono', monospace" }}
-                  title={adminMode ? "Exit admin mode" : "Enter admin mode"}
                 >
                   {adminMode ? "⚡ Admin" : "🔧 Admin"}
                 </button>
               )}
 
               <button onClick={() => setShowTerms(true)}
-                className="text-[9px] px-2 py-1 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-all uppercase tracking-wider touch-safe min-w-[44px]"
+                className="hidden md:inline-flex text-[9px] px-2 py-1 rounded border border-white/10 text-[rgba(240,237,232,0.3)] hover:text-white/60 transition-all uppercase tracking-wider touch-safe min-w-[44px]"
                 style={{ fontFamily: "'DM Mono', monospace" }}>Terms</button>
 
               <PwaInstallButton />
 
-              {/* Dropdown menu */}
-              <AnimatePresence>
-                {menuOpen && (
-                  <motion.div
+              {/* Avatar — far right */}
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="w-8 h-8 md:w-9 md:h-9 rounded-full ring-2 ring-white/10 hover:ring-[#C8B99A]/40 transition-all overflow-hidden flex-shrink-0"
+                >
+                  {profileImage ? (
+                    <img src={profileImage} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full bg-[rgba(200,185,154,0.15)] flex items-center justify-center text-[10px] md:text-xs text-[#C8B99A] font-medium"
+                      style={{ fontFamily: "'DM Mono', monospace" }}>
+                      {getInitials(profileName || user?.name)}
+                    </div>
+                  )}
+                </button>
+                <AnimatePresence>
+                  {menuOpen && (
+                    <motion.div
                     initial={{ opacity: 0, y: -6, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -6, scale: 0.95 }}
@@ -170,6 +175,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
                 )}
               </AnimatePresence>
             </div>
+            </>
           ) : (
             <motion.button
               onClick={() => signIn("google")}

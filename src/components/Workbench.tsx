@@ -57,14 +57,14 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
       {/* Mobile floating edge buttons */}
       <div className="md:hidden absolute inset-0 pointer-events-none z-30">
         <button onClick={() => toggleMobile("left")}
-          className={`pointer-events-auto absolute left-0 top-1/2 -translate-y-1/2 w-12 h-20 rounded-r-xl border border-l-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
+          className={`pointer-events-auto absolute left-0 top-[55%] -translate-y-1/2 w-12 h-20 rounded-r-xl border border-l-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
             mobilePanel === "left" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
           }`}
           style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.2em" }}>
-          📷 REF
+          📷 REFERENCEERENCE
         </button>
         <button onClick={() => toggleMobile("right")}
-          className={`pointer-events-auto absolute right-0 top-1/2 -translate-y-1/2 w-12 h-20 rounded-l-xl border border-r-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
+          className={`pointer-events-auto absolute right-0 top-[55%] -translate-y-1/2 w-12 h-20 rounded-l-xl border border-r-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
             mobilePanel === "right" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
           }`}
           style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", letterSpacing: "0.2em" }}>
