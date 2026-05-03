@@ -85,7 +85,7 @@ function Carousel({ items, idx, setIdx, label, emptyLabel, renderActions, hasOrd
       >
         <div className="relative w-full h-full max-h-full flex items-center">
           <AnimatePresence mode="wait">
-            <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }} className="w-full h-full">
+            <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }} className="w-full h-full px-2 md:px-0">
               <div className="relative rounded-xl overflow-hidden aspect-[3/4] min-h-[200px] md:min-h-[360px] w-full bg-[rgba(255,255,255,0.02)] border border-white/5">
                 {item.status === "error" ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-[rgba(255,0,0,0.03)]">

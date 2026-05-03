@@ -31,16 +31,45 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
+  // Mobile swipe gesture state
+  const swipeStartX = useRef(0);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    swipeStartX.current = e.touches[0].clientX;
+  }, []);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isMobile) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX.current;
+    // Swipe from left edge (>80px right) opens left panel
+    if (swipeStartX.current < 40 && dx > 60) {
+      toggleMobile("left");
+    }
+    // Swipe from right edge (>80px left) opens right panel
+    if (swipeStartX.current > window.innerWidth - 40 && dx < -60) {
+      toggleMobile("right");
+    }
+  }, [isMobile, toggleMobile]);
+
   return (
-    <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 relative">
-      {/* Mobile panel toggle bar */}
-      <div className="md:hidden flex items-center justify-center gap-4 py-2 px-4 border-b border-white/5">
+    <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 relative"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Mobile floating edge buttons */}
+      <div className="md:hidden absolute inset-0 pointer-events-none z-30">
         <button onClick={() => toggleMobile("left")}
-          className={`px-4 py-2 rounded-lg border text-[10px] uppercase tracking-wider transition-all min-h-[44px] touch-safe ${mobilePanel === "left" ? "border-[#C8B99A] text-[#C8B99A]" : "border-white/10 text-[rgba(240,237,232,0.4)]"}`}
-          style={{ fontFamily: "'DM Mono', monospace" }}>📷 Ref</button>
+          className={`pointer-events-auto absolute left-0 top-1/2 -translate-y-1/2 w-12 h-20 rounded-r-xl border border-l-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
+            mobilePanel === "left" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
+          }`}
+          style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.2em" }}>
+          📷 REF
+        </button>
         <button onClick={() => toggleMobile("right")}
-          className={`px-4 py-2 rounded-lg border text-[10px] uppercase tracking-wider transition-all min-h-[44px] touch-safe ${mobilePanel === "right" ? "border-[#C8B99A] text-[#C8B99A]" : "border-white/10 text-[rgba(240,237,232,0.4)]"}`}
-          style={{ fontFamily: "'DM Mono', monospace" }}>✦ Build</button>
+          className={`pointer-events-auto absolute right-0 top-1/2 -translate-y-1/2 w-12 h-20 rounded-l-xl border border-r-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
+            mobilePanel === "right" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
+          }`}
+          style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", letterSpacing: "0.2em" }}>
+          ✦ BUILD
+        </button>
       </div>
 
       {/* Mobile overlays */}
