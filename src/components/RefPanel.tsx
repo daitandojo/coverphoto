@@ -41,7 +41,7 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
         <svg className="mx-auto mb-2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(200,185,154,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        <p className="text-[11px] text-[rgba(240,237,232,0.4)] mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>Drop images here</p>
+        <p className="hidden md:block text-[11px] text-[rgba(240,237,232,0.4)] mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>Drop images here</p>
         <div className="flex gap-2 justify-center">
           <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/10 text-xs text-[rgba(240,237,232,0.5)] hover:border-white/20 cursor-default transition-all gold-corner-effect" style={{ fontFamily: "'DM Mono', monospace" }}>📁 Browse</span>
           <button onClick={(e) => { e.stopPropagation(); onCameraClick(); }}
