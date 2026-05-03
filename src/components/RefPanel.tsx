@@ -57,8 +57,21 @@ export default function RefPanel({ onCameraClick }: RefPanelProps) {
         <AnimatePresence mode="popLayout">
           {uploadedImages.length > 0 && (
             <motion.div key="filmstrip" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col gap-2 md:gap-3 h-full">
-              {uploadedImages.map((img) => (
+              {uploadedImages.map((img, i) => (
                 <motion.div key={img.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative flex-1 w-full min-h-0">
+                  {/* Number badge — premium gold with black shadow */}
+                  <div className="absolute top-2 right-2 z-10 pointer-events-none select-none"
+                    style={{
+                      fontSize: "clamp(28px, 5vw, 48px)",
+                      fontWeight: 700,
+                      fontFamily: "'Cormorant Garamond', serif",
+                      color: "#C8B99A",
+                      textShadow: "2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 2px 8px rgba(0,0,0,0.6)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
                   <div className="w-full h-full rounded-lg overflow-hidden ring-1 ring-white/10 bg-black/20 flex items-center justify-center">
                     <img src={img.preview} alt="" className="w-full h-full object-contain" />
                   </div>
