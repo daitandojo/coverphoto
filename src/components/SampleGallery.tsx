@@ -177,7 +177,7 @@ export default function SampleGallery() {
       className="flex flex-col items-center gap-6"
     >
       {/* Mobile: 2 rows of 2, overlapped. Desktop: single row */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-3 md:gap-4 lg:gap-6 min-h-0">
         {/* Row 1 (indices 0, 1) — slight overlap */}
         <div className="flex flex-row items-center justify-center -space-x-6 sm:hidden">
           {set.images.slice(0, 2).map((img, i) => (

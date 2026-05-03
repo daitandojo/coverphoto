@@ -170,15 +170,15 @@ export default function Home() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="h-dvh min-h-screen flex flex-col overflow-hidden">
             <StudioHeader onCreditsClick={() => setShowBuyCredits(true)} credits={credits} user={session?.user ?? null} isGenerating={generating} />
             {status === "unauthenticated" && (
-              <main className="flex-1 flex flex-col items-center justify-center gap-6 md:gap-8 px-4 min-h-0">
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center space-y-2 pt-1">
-                  <p className="text-[9px] tracking-[0.35em] text-[#C8B99A] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Premium AI Portrait Studio</p>
+              <main className="flex-1 flex flex-col items-center justify-center gap-10 md:gap-12 px-6 min-h-0">
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-center space-y-4 pt-2">
+                  <p className="text-[10px] tracking-[0.35em] text-[#C8B99A] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Premium AI Portrait Studio</p>
                   <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#F0EDE8] leading-none tracking-tight" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500 }}>
                     Multiple perspectives.<br /><span className="text-[#C8B99A]">One you.</span>
                   </h2>
                 </motion.div>
                 <div className="flex-shrink w-full max-w-6xl"><SampleGallery /></div>
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }} className="text-center space-y-3">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }} className="text-center space-y-4">
                   <motion.button onClick={() => signIn("google")} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
                     className="cta-corners relative px-8 py-3 rounded-lg border border-[#C8B99A]/40 text-sm text-[#C8B99A] pulse-glow bg-[rgba(200,185,154,0.04)]" style={{ fontFamily: "'DM Mono', monospace" }}>
                     <span className="gold-corner top-left" /><span className="gold-corner top-right" /><span className="gold-corner bottom-left" /><span className="gold-corner bottom-right" />
