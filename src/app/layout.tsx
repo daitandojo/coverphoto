@@ -39,7 +39,14 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: "CoverPhoto — Premium AI Portrait Studio",
     description: DESCRIPTION,
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "CoverPhoto AI Portrait Studio" }],
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "CoverPhoto AI Portrait Studio",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -50,29 +57,47 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   alternates: { canonical: SITE_URL },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: SITE_NAME },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: SITE_NAME,
+    startupImage: ["/icon-512.png"],
+  },
   other: { "mobile-web-app-capable": "yes" },
-  verification: { google: "" }, // Add your Google Search Console verification code here
+  verification: { google: "" },
   category: "technology",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+        />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="application-name" content="CoverPhoto" />
         <meta name="theme-color" content="#080808" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="CoverPhoto" />
 
         {/* Preconnect to font providers */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
 
-        {/* Icons */}
-        <link rel="apple-touch-icon" href="/icon-192.png" sizes="192x192" />
+        {/* Icons — PWA + iOS */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" sizes="180x180" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-167.png" sizes="167x167" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-152.png" sizes="152x152" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon-120.png" sizes="120x120" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
         <link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512" />
@@ -93,7 +118,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 "@type": "Offer",
                 price: "0",
                 priceCurrency: "USD",
-                description: "Free credits to start. Premium credit packages available.",
+                description:
+                  "Free credits to start. Premium credit packages available.",
               },
               author: {
                 "@type": "Organization",

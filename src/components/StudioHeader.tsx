@@ -8,6 +8,7 @@ import { usePortraitStore } from "@/lib/store";
 import TermsModal from "./TermsModal";
 import PwaInstallButton from "./PwaInstallButton";
 import toast from "react-hot-toast";
+import VERSION from "@/lib/version";
 
 interface StudioHeaderProps {
   onCreditsClick: () => void;
@@ -77,6 +78,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
         >
           <span className="md:hidden">CP</span>
           <span className="hidden md:inline">COVERPHOTO</span>
+          <span className="hidden md:inline text-[8px] tracking-[0.15em] text-[rgba(200,185,154,0.25)] ml-2 align-super" style={{ fontFamily: "'DM Mono', monospace" }}>v{VERSION}</span>
         </h1>
 
         <div className="flex items-center gap-2 md:gap-4">
