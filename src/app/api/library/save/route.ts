@@ -15,19 +15,19 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     // Upsert a dedicated "library" session record
-    const existing = await prisma.portraitSessionRecord.findFirst({
-      where: { userId: user.id, id: "library" },
+    const existing = await prisma.portraitSessionRecord.findUnique({
+      where: { id: `library-${user.id}` },
     });
 
     if (existing) {
       await prisma.portraitSessionRecord.update({
-        where: { id: "library" },
+        where: { id: `library-${user.id}` },
         data: { portraits: JSON.stringify(portraits || []) },
       });
     } else {
       await prisma.portraitSessionRecord.create({
         data: {
-          id: "library",
+          id: `library-${user.id}`,
           userId: user.id,
           images: "[]",
           portraits: JSON.stringify(portraits || []),

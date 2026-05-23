@@ -11,8 +11,8 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // Load state (includes uploadedImages previews, library, and workbench)
-    const stateRec = await prisma.portraitSessionRecord.findFirst({
-      where: { userId: user.id, id: "state" },
+    const stateRec = await prisma.portraitSessionRecord.findUnique({
+      where: { id: `state-${user.id}` },
     });
 
     let savedState: { uploadedImages?: any[]; libraryPortraits?: any[]; workbenchPortraits?: any[] } = {};
@@ -28,7 +28,14 @@ export async function GET() {
 
     // Aggregate all generation sessions for auto-restore of completed portraits
     const allSessions = await prisma.portraitSessionRecord.findMany({
-      where: { userId: user.id, id: { notIn: ["library", "dismissed", "state"] } },
+      where: {
+        userId: user.id,
+        NOT: [
+          { id: { startsWith: "library-" } },
+          { id: { startsWith: "dismissed-" } },
+          { id: { startsWith: "state-" } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
     });
 

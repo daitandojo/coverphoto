@@ -16,15 +16,15 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     // Find the library record and remove the portrait
-    const libraryRecord = await prisma.portraitSessionRecord.findFirst({
-      where: { userId: user.id, id: "library" },
+    const libraryRecord = await prisma.portraitSessionRecord.findUnique({
+      where: { id: `library-${user.id}` },
     });
 
     if (libraryRecord) {
       const portraits = JSON.parse(libraryRecord.portraits || "[]");
       const filtered = portraits.filter((p: any) => p && p.id !== id);
       await prisma.portraitSessionRecord.update({
-        where: { id: "library" },
+        where: { id: `library-${user.id}` },
         data: { portraits: JSON.stringify(filtered) },
       });
     }

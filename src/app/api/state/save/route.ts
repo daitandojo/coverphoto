@@ -21,18 +21,18 @@ export async function POST(request: Request) {
       workbenchPortraits: workbenchPortraits || [],
     });
 
-    const existing = await prisma.portraitSessionRecord.findFirst({
-      where: { userId: user.id, id: "state" },
+    const existing = await prisma.portraitSessionRecord.findUnique({
+      where: { id: `state-${user.id}` },
     });
 
     if (existing) {
       await prisma.portraitSessionRecord.update({
-        where: { id: "state" },
+        where: { id: `state-${user.id}` },
         data: { portraits: payload },
       });
     } else {
       await prisma.portraitSessionRecord.create({
-        data: { id: "state", userId: user.id, images: "[]", portraits: payload },
+        data: { id: `state-${user.id}`, userId: user.id, images: "[]", portraits: payload },
       });
     }
 

@@ -16,8 +16,8 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     // Load existing dismissed list from user metadata or dedicated record
-    let dismissedRec = await prisma.portraitSessionRecord.findFirst({
-      where: { userId: user.id, id: "dismissed" },
+    let dismissedRec = await prisma.portraitSessionRecord.findUnique({
+      where: { id: `dismissed-${user.id}` },
     });
 
     const dismissed: string[] = dismissedRec ? JSON.parse(dismissedRec.portraits || "[]") : [];
@@ -28,12 +28,12 @@ export async function POST(request: Request) {
 
     if (dismissedRec) {
       await prisma.portraitSessionRecord.update({
-        where: { id: "dismissed" },
+        where: { id: `dismissed-${user.id}` },
         data: { portraits: JSON.stringify(dismissed) },
       });
     } else {
       await prisma.portraitSessionRecord.create({
-        data: { id: "dismissed", userId: user.id, images: "[]", portraits: JSON.stringify(dismissed) },
+        data: { id: `dismissed-${user.id}`, userId: user.id, images: "[]", portraits: JSON.stringify(dismissed) },
       });
     }
 
