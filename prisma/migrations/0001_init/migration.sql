@@ -36,7 +36,9 @@ CREATE TABLE "PortraitUser" (
     "email" TEXT,
     "emailVerified" TIMESTAMP(3),
     "image" TEXT,
-    "credits" INTEGER NOT NULL DEFAULT 100,
+    "password" TEXT,
+    "credits" INTEGER NOT NULL DEFAULT 5,
+    "referredBy" TEXT,
 
     CONSTRAINT "PortraitUser_pkey" PRIMARY KEY ("id")
 );
@@ -83,4 +85,3 @@ ALTER TABLE "PortraitSession" ADD CONSTRAINT "PortraitSession_userId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "PortraitSessionRecord" ADD CONSTRAINT "PortraitSessionRecord_userId_fkey" FOREIGN KEY ("userId") REFERENCES "PortraitUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

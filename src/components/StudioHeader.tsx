@@ -77,6 +77,7 @@ export default function StudioHeader({ onCreditsClick, credits, user, isGenerati
           onClick={() => router.push("/")}
         >
           <span className="md:hidden">CP</span>
+          <span className="md:hidden text-[8px] tracking-[0.15em] text-[rgba(200,185,154,0.3)] ml-1" style={{ fontFamily: "'DM Mono', monospace" }}>v{VERSION}</span>
           <span className="hidden md:inline">COVERPHOTO</span>
           <span className="hidden md:inline text-[8px] tracking-[0.15em] text-[rgba(200,185,154,0.25)] ml-2 align-super" style={{ fontFamily: "'DM Mono', monospace" }}>v{VERSION}</span>
         </h1>
