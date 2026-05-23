@@ -56,20 +56,24 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
     >
       {/* Mobile floating edge buttons */}
       <div className="md:hidden absolute inset-0 pointer-events-none z-30">
-        <button onClick={() => toggleMobile("left")}
+        <motion.button onClick={() => toggleMobile("left")}
+          animate={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { boxShadow: ["0 0 0 0 rgba(200,185,154,0)", "0 0 12px 4px rgba(200,185,154,0.15)", "0 0 0 0 rgba(200,185,154,0)"] } : {}}
+          transition={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { duration: 2.5, repeat: Infinity, ease: "easeInOut" } : {}}
           className={`pointer-events-auto absolute left-0 top-[55%] -translate-y-1/2 w-12 h-20 rounded-r-xl border border-l-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
             mobilePanel === "left" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
           }`}
           style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.2em" }}>
           📷 REFERENCE
-        </button>
-        <button onClick={() => toggleMobile("right")}
+        </motion.button>
+        <motion.button onClick={() => toggleMobile("right")}
+          animate={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { boxShadow: ["0 0 0 0 rgba(200,185,154,0)", "0 0 12px 4px rgba(200,185,154,0.15)", "0 0 0 0 rgba(200,185,154,0)"] } : {}}
+          transition={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 } : {}}
           className={`pointer-events-auto absolute right-0 top-[55%] -translate-y-1/2 w-12 h-20 rounded-l-xl border border-r-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
             mobilePanel === "right" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
           }`}
           style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", letterSpacing: "0.2em" }}>
           ✦ BUILD
-        </button>
+        </motion.button>
       </div>
 
       {/* Mobile overlays */}
@@ -90,7 +94,7 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
           <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.25, ease: "easeOut" }}
             className="md:hidden fixed inset-0 z-40 bg-[rgba(8,8,8,0.97)] overflow-hidden p-4 pt-12 flex flex-col">
             <button onClick={() => setMobilePanel(null)} className="absolute top-3 right-3 text-white/50 hover:text-white/90 text-lg w-11 h-11 flex items-center justify-center">✕</button>
-            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate && wbEmpty} reason={wbEmpty ? genReason : "Dispatch workbench items first"} />
+            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -186,7 +190,7 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
                 className="text-xl md:text-2xl leading-relaxed max-w-[50%] text-[rgba(240,237,232,0.4)] italic"
                 style={{ fontFamily: "'Times New Roman', Times, serif" }}
               >
-                Upload reference images from the left panel, then choose your portrait styles in the builder on the right. Your generated portraits will appear here.
+                Upload reference images from the left panel (tap <span className="text-[#C8B99A]">📷 REFERENCE</span> on the left edge), then choose your portrait styles in the builder on the right (tap <span className="text-[#C8B99A]">✦ BUILD</span> on the right edge). Your generated portraits will appear here.
               </motion.p>
             </div>
           </div>
@@ -220,7 +224,7 @@ export default function Workbench({ onGenerate, canGenerate, genReason }: Workbe
         <AnimatePresence>{rightPanelOpen && (
           <motion.div initial={{ x: 500 }} animate={{ x: 0 }} exit={{ x: 500 }} transition={{ duration: 0.25, ease: "easeOut" }}
             className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4" style={{ width: 500, minWidth: 500 }}>
-            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate && wbEmpty} reason={wbEmpty ? genReason : "Dispatch workbench items first"} />
+            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
           </motion.div>
         )}</AnimatePresence>
       </div>
