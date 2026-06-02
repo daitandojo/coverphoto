@@ -25,6 +25,11 @@
   .show-on-touch { display: flex !important; }
 }
 
+/* Safe area for notched phones */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 @media (hover: hover) {
   .touch-always-show { opacity: 0; }
   .group:hover .touch-always-show { opacity: 1; }

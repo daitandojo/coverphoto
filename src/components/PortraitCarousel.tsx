@@ -270,10 +270,10 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
                 <div className="flex gap-1.5 md:gap-2">
                   <button onClick={() => moveToLibrary(item.id)}
                     className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-[#C8B99A]/30 text-[9px] md:text-[10px] text-[#C8B99A]/90 hover:bg-[#C8B99A]/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>📚 Library</button>
+                    style={{ fontFamily: "'DM Mono', monospace" }}>✓ Keep</button>
                   <button onClick={() => dismissFromWorkbench(item.id)}
                     className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Dismiss</button>
+                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Skip</button>
                 </div>
               )} />
           </motion.div>
@@ -286,10 +286,10 @@ export default function PortraitCarousel({ onOrder }: { onOrder?: (item: any) =>
                 <div className="flex gap-1.5 md:gap-2">
                   <button onClick={() => moveToLibrary(item.id)}
                     className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-[#C8B99A]/30 text-[9px] md:text-[10px] text-[#C8B99A]/90 hover:bg-[#C8B99A]/10 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>📚 Library</button>
+                    style={{ fontFamily: "'DM Mono', monospace" }}>✓ Keep</button>
                   <button onClick={() => dismissFromWorkbench(item.id)}
                     className="px-2.5 md:px-3 py-1.5 md:py-1.5 rounded-md bg-black/50 backdrop-blur-sm border border-red-400/30 text-[9px] md:text-[10px] text-red-300/80 hover:bg-red-900/20 transition-all uppercase tracking-wider touch-safe min-h-[36px]"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Dismiss</button>
+                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Skip</button>
                 </div>
               )} />
           </motion.div>

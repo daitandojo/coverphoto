@@ -13,6 +13,7 @@ import SampleGallery from "@/components/SampleGallery";
 import LandingSteps from "@/components/LandingSteps";
 import SocialProof from "@/components/SocialProof";
 import Workbench from "@/components/Workbench";
+import FirstRunTour from "@/components/FirstRunTour";
 import ErrorModal from "@/components/ErrorModal";
 import EmailAuthModal from "@/components/EmailAuthModal";
 import { usePortraitStore } from "@/lib/store";
@@ -56,6 +57,7 @@ export default function Home() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showEmailAuth, setShowEmailAuth] = useState(false);
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => { const seen = sessionStorage.getItem("coverphoto_splash"); if (seen) setSplashDone(true); }, []);
   useEffect(() => {
@@ -67,7 +69,12 @@ export default function Home() {
       ]).finally(() => setSessionLoading(false));
       if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     }
-  }, [status, setCredits]);
+    // Show first-run tour when authenticated with no existing portraits
+    if (status === "authenticated" && isFirstRun && splashDone && !sessionLoading) {
+      const tourSeen = sessionStorage.getItem("coverphoto_tour");
+      if (!tourSeen) setShowTour(true);
+    }
+  }, [status, setCredits, isFirstRun, splashDone, sessionLoading]);
 
   const handleSplashComplete = () => { sessionStorage.setItem("coverphoto_splash", "1"); setSplashDone(true); };
 
@@ -235,6 +242,7 @@ export default function Home() {
             {showConfetti && <ConfettiBurst />}
             <ErrorModal open={errorMsg !== null} message={errorMsg || ""} onClose={() => setErrorMsg(null)} />
             <EmailAuthModal open={showEmailAuth} onClose={() => setShowEmailAuth(false)} />
+            <FirstRunTour open={showTour} onComplete={() => { setShowTour(false); sessionStorage.setItem("coverphoto_tour", "1"); }} />
           </motion.div>
         )}
       </AnimatePresence>

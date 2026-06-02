@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePortraitStore } from "@/lib/store";
 import RefPanel from "./RefPanel";
 import BuilderPanel from "./BuilderPanel";
 import PortraitCarousel from "./PortraitCarousel";
+import WorkflowWizard from "./WorkflowWizard";
+import MobileTabBar from "./MobileTabBar";
+import type { TabDef } from "./MobileTabBar";
 import WebcamModal from "./WebcamModal";
 import OrderMailModal from "./OrderMailModal";
 
@@ -16,221 +19,384 @@ interface WorkbenchProps {
 }
 
 export default function Workbench({ onGenerate, canGenerate, genReason }: WorkbenchProps) {
-  const { leftPanelOpen, rightPanelOpen, setLeftPanelOpen, setRightPanelOpen, libraryPortraits, workbenchPortraits, resetWorkbench } = usePortraitStore();
+  const {
+    uploadedImages,
+    totalSelected,
+    workbenchPortraits,
+    libraryPortraits,
+    leftPanelOpen,
+    rightPanelOpen,
+    setLeftPanelOpen,
+    setRightPanelOpen,
+    resetWorkbench,
+  } = usePortraitStore();
+
   const [showCam, setShowCam] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
   const [orderItem, setOrderItem] = useState<any>(null);
-  const [mobilePanel, setMobilePanel] = useState<"left" | "right" | null>(null);
+  const [mobileTab, setMobileTab] = useState<string>("photos");
 
   const wbEmpty = workbenchPortraits.length === 0;
+  const selectedCount = totalSelected();
+  const hasResults = workbenchPortraits.length > 0 || libraryPortraits.length > 0;
 
-  // Touch-friendly panel toggles
-  const toggleMobile = useCallback((side: "left" | "right") => {
-    setMobilePanel((prev) => (prev === side ? null : side));
-  }, []);
+  // Auto-switch to results tab when generation completes
+  useEffect(() => {
+    if (hasResults && mobileTab !== "results") {
+      // Only auto-switch if user is on photos or styles and results appear
+      if (mobileTab === "photos" || mobileTab === "styles") {
+        setMobileTab("results");
+      }
+    }
+  }, [hasResults, workbenchPortraits.length]);
 
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-  // Mobile swipe gesture state
+  // Desktop: swipe gesture state (kept for backward compat)
   const swipeStartX = useRef(0);
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     swipeStartX.current = e.touches[0].clientX;
   }, []);
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!isMobile) return;
-    const dx = e.changedTouches[0].clientX - swipeStartX.current;
-    // Swipe from left edge (>80px right) opens left panel
-    if (swipeStartX.current < 40 && dx > 60) {
-      toggleMobile("left");
-    }
-    // Swipe from right edge (>80px left) opens right panel
-    if (swipeStartX.current > window.innerWidth - 40 && dx < -60) {
-      toggleMobile("right");
-    }
-  }, [isMobile, toggleMobile]);
+
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  // Define tab data
+  const tabs: TabDef[] = [
+    { id: "photos", label: "Photos", icon: "📷", badge: uploadedImages.length },
+    { id: "styles", label: "Styles", icon: "✦", badge: selectedCount || undefined },
+    { id: "results", label: "Results", icon: hasResults ? "✨" : "🖼", badge: libraryPortraits.length + workbenchPortraits.length || undefined },
+  ];
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 relative"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Mobile floating edge buttons */}
-      <div className="md:hidden absolute inset-0 pointer-events-none z-30">
-        <motion.button onClick={() => toggleMobile("left")}
-          animate={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { boxShadow: ["0 0 0 0 rgba(200,185,154,0)", "0 0 12px 4px rgba(200,185,154,0.15)", "0 0 0 0 rgba(200,185,154,0)"] } : {}}
-          transition={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { duration: 2.5, repeat: Infinity, ease: "easeInOut" } : {}}
-          className={`pointer-events-auto absolute left-0 top-[55%] -translate-y-1/2 w-12 h-20 rounded-r-xl border border-l-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
-            mobilePanel === "left" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
-          }`}
-          style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.2em" }}>
-          📷 REFERENCE
-        </motion.button>
-        <motion.button onClick={() => toggleMobile("right")}
-          animate={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { boxShadow: ["0 0 0 0 rgba(200,185,154,0)", "0 0 12px 4px rgba(200,185,154,0.15)", "0 0 0 0 rgba(200,185,154,0)"] } : {}}
-          transition={libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? { duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 } : {}}
-          className={`pointer-events-auto absolute right-0 top-[55%] -translate-y-1/2 w-12 h-20 rounded-l-xl border border-r-0 text-[9px] uppercase tracking-wider transition-all touch-safe min-h-[44px] backdrop-blur-sm ${
-            mobilePanel === "right" ? "border-[#C8B99A] bg-[rgba(200,185,154,0.12)] text-[#C8B99A]" : "border-white/10 bg-[rgba(8,8,8,0.85)] text-[rgba(240,237,232,0.4)]"
-          }`}
-          style={{ fontFamily: "'DM Mono', monospace", writingMode: "vertical-rl", letterSpacing: "0.2em" }}>
-          ✦ BUILD
-        </motion.button>
-      </div>
+    <>
+      {/* Workflow Wizard — always visible */}
+      <WorkflowWizard />
 
-      {/* Mobile overlays */}
-      <AnimatePresence>
-        {mobilePanel === "left" && (
-          <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="md:hidden fixed inset-0 z-40 bg-[rgba(8,8,8,0.97)] overflow-hidden p-4 pt-12 flex flex-col">
-            <button onClick={() => setMobilePanel(null)} className="absolute top-3 right-3 text-white/50 hover:text-white/90 text-lg w-11 h-11 flex items-center justify-center flex-shrink-0">✕</button>
-            <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative"
+        onTouchStart={handleTouchStart}
+      >
+        {/* ==================================================== */}
+        {/* MOBILE: Bottom tab layout */}
+        {/* ==================================================== */}
+        <div className="md:hidden flex-1 flex flex-col min-h-0 overflow-hidden pb-16">
+          {/* Photos tab */}
+          <div className={`flex-1 min-h-0 overflow-y-auto ${mobileTab === "photos" ? "block" : "hidden"}`}>
+            <div className="p-4">
               <RefPanel onCameraClick={() => setShowCam(true)} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
 
-      <AnimatePresence>
-        {mobilePanel === "right" && (
-          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="md:hidden fixed inset-0 z-40 bg-[rgba(8,8,8,0.97)] overflow-hidden p-4 pt-12 flex flex-col">
-            <button onClick={() => setMobilePanel(null)} className="absolute top-3 right-3 text-white/50 hover:text-white/90 text-lg w-11 h-11 flex items-center justify-center">✕</button>
-            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Desktop: LEFT panel */}
-      <div className="hidden md:block relative z-20 flex-shrink-0">
-        {!leftPanelOpen && (
-          <button onClick={() => setLeftPanelOpen(true)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-12 h-24 rounded-r-lg border border-l-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors touch-safe min-w-[44px]">
-            <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", transform: "rotate(180deg)", letterSpacing: "0.15em" }}>📷 REF</span>
-          </button>
-        )}
-        <AnimatePresence>{leftPanelOpen && (
-          <motion.div initial={{ x: -310 }} animate={{ x: 0 }} exit={{ x: -310 }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="h-full border-r border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-y-auto p-4" style={{ width: 310, minWidth: 310 }}>
-            <RefPanel onCameraClick={() => setShowCam(true)} />
-          </motion.div>
-        )}</AnimatePresence>
-      </div>
-
-      {/* CENTER */}
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden px-2 md:px-4 py-2 md:py-3">
-        {libraryPortraits.length === 0 && workbenchPortraits.length === 0 ? (
-          /* Empty state: guidance with subtle premium animations */
-          <div className="flex-1 flex flex-col items-center pt-[20vh] gap-4 text-center px-6 relative overflow-hidden">
-            {/* Animated particles */}
-            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-1 h-1 rounded-full bg-[#C8B99A]"
-                  style={{
-                    left: `${5 + Math.random() * 90}%`,
-                    top: `${10 + Math.random() * 80}%`,
-                  }}
-                  animate={{
-                    y: [0, -30 - Math.random() * 40, 0],
-                    x: [0, (Math.random() - 0.5) * 20, 0],
-                    opacity: [0, 0.6, 0],
-                    scale: [0, 1.2, 0],
-                  }}
-                  transition={{
-                    duration: 4 + Math.random() * 4,
-                    repeat: Infinity,
-                    delay: Math.random() * 4,
-                    ease: "easeInOut",
-                  }}
-                />
-              ))}
-              {/* Larger slow-drifting orbs */}
-              {Array.from({ length: 4 }).map((_, i) => (
-                <motion.div
-                  key={`orb-${i}`}
-                  className="absolute rounded-full pointer-events-none"
-                  style={{
-                    width: 60 + Math.random() * 100,
-                    height: 60 + Math.random() * 100,
-                    left: `${5 + Math.random() * 90}%`,
-                    top: `${10 + Math.random() * 80}%`,
-                    background: `radial-gradient(circle at center, rgba(200,185,154,0.06) 0%, transparent 70%)`,
-                  }}
-                  animate={{
-                    y: [0, -20 - Math.random() * 30, 0],
-                    x: [0, (Math.random() - 0.5) * 30, 0],
-                    scale: [1, 1.15, 1],
-                    opacity: [0.3, 0.6, 0.3],
-                  }}
-                  transition={{
-                    duration: 8 + Math.random() * 6,
-                    repeat: Infinity,
-                    delay: Math.random() * 6,
-                    ease: "easeInOut",
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Content (above particles) */}
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <motion.p
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-xs tracking-[0.4em] text-[rgba(200,185,154,0.15)] uppercase"
-                style={{ fontFamily: "'DM Mono', monospace" }}
-              >
-                Welcome
-              </motion.p>
-              <motion.p
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-xl md:text-2xl leading-relaxed max-w-[50%] text-[rgba(240,237,232,0.4)] italic"
-                style={{ fontFamily: "'Times New Roman', Times, serif" }}
-              >
-                Upload reference images from the left panel (tap <span className="text-[#C8B99A]">📷 REFERENCE</span> on the left edge), then choose your portrait styles in the builder on the right (tap <span className="text-[#C8B99A]">✦ BUILD</span> on the right edge). Your generated portraits will appear here.
-              </motion.p>
+          {/* Styles tab */}
+          <div className={`flex-1 min-h-0 overflow-y-auto ${mobileTab === "styles" ? "block" : "hidden"}`}>
+            <div className="p-4">
+              <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
             </div>
           </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Workbench</p>
-              <div className="flex items-center gap-2">
-                {!wbEmpty && (
-                  <button onClick={resetWorkbench}
-                    className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-red-500/15 text-red-400/40 hover:text-red-400/70 transition-all touch-safe"
-                    style={{ fontFamily: "'DM Mono', monospace" }}>✕ Clear</button>
-                )}
-              </div>
-            </div>
-            <div className="flex-1 min-h-0">
-              <PortraitCarousel onOrder={(item) => { setOrderItem(item); setShowOrder(true); }} />
-            </div>
-          </>
-        )}
-      </main>
 
-      {/* Desktop: RIGHT panel */}
-      <div className="hidden md:block relative z-20 flex-shrink-0">
-        {!rightPanelOpen && (
-          <button onClick={() => setRightPanelOpen(true)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-12 h-24 rounded-l-lg border border-r-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors touch-safe min-w-[44px]">
-            <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", letterSpacing: "0.15em" }}>✦ BUILD</span>
-          </button>
-        )}
-        <AnimatePresence>{rightPanelOpen && (
-          <motion.div initial={{ x: 500 }} animate={{ x: 0 }} exit={{ x: 500 }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4" style={{ width: 500, minWidth: 500 }}>
-            <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
-          </motion.div>
-        )}</AnimatePresence>
+          {/* Results tab */}
+          <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${mobileTab === "results" ? "block" : "hidden"}`}>
+            {hasResults ? (
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="p-2 md:p-4">
+                  <PortraitCarousel onOrder={(item) => { setOrderItem(item); setShowOrder(true); }} />
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+                <MobileEmptyState
+                  onSwitchTab={(tab) => setMobileTab(tab)}
+                  hasPhotos={uploadedImages.length > 0}
+                  hasStyles={selectedCount > 0}
+                  photoCount={uploadedImages.length}
+                  styleCount={selectedCount}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ==================================================== */}
+        {/* DESKTOP: Three-panel layout */}
+        {/* ==================================================== */}
+        <div className="hidden md:flex flex-1 flex-row min-h-0 overflow-hidden">
+          {/* LEFT PANEL (RefPanel) */}
+          <div className="relative z-20 flex-shrink-0">
+            {!leftPanelOpen && (
+              <button onClick={() => setLeftPanelOpen(true)}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-12 h-24 rounded-r-lg border border-l-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors touch-safe min-w-[44px]">
+                <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", transform: "rotate(180deg)", letterSpacing: "0.15em" }}>
+                  📷 PHOTOS
+                </span>
+              </button>
+            )}
+            <AnimatePresence>
+              {leftPanelOpen && (
+                <motion.div
+                  initial={{ x: -310 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: -310 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="h-full border-r border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-y-auto p-4"
+                  style={{ width: 310, minWidth: 310 }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
+                      Photos
+                    </span>
+                    <button onClick={() => setLeftPanelOpen(false)} className="text-white/30 hover:text-white/70 text-sm w-6 h-6 flex items-center justify-center">
+                      ✕
+                    </button>
+                  </div>
+                  <RefPanel onCameraClick={() => setShowCam(true)} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* CENTER — Empty state or Carousel */}
+          <main className="flex-1 flex flex-col min-h-0 overflow-hidden px-4 py-3">
+            {!hasResults ? (
+              <DesktopEmptyState
+                hasPhotos={uploadedImages.length > 0}
+                hasStyles={selectedCount > 0}
+                canGenerate={canGenerate}
+                photoCount={uploadedImages.length}
+                styleCount={selectedCount}
+              />
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[9px] tracking-[0.4em] text-[rgba(200,185,154,0.2)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
+                    {workbenchPortraits.length > 0 ? "Workbench" : "Library"}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {!wbEmpty && (
+                      <button onClick={resetWorkbench}
+                        className="text-[8px] px-2 py-1.5 min-h-[32px] rounded border border-red-500/15 text-red-400/40 hover:text-red-400/70 transition-all touch-safe"
+                        style={{ fontFamily: "'DM Mono', monospace" }}>✕ Clear</button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <PortraitCarousel onOrder={(item) => { setOrderItem(item); setShowOrder(true); }} />
+                </div>
+              </>
+            )}
+          </main>
+
+          {/* RIGHT PANEL (BuilderPanel) */}
+          <div className="relative z-20 flex-shrink-0">
+            {!rightPanelOpen && (
+              <button onClick={() => setRightPanelOpen(true)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-12 h-24 rounded-l-lg border border-r-0 border-white/10 bg-[rgba(8,8,8,0.85)] backdrop-blur-sm flex items-center justify-center cursor-pointer hover:border-[#C8B99A]/30 transition-colors touch-safe min-w-[44px]">
+                <span className="text-[10px]" style={{ writingMode: "vertical-rl", fontFamily: "'DM Mono', monospace", letterSpacing: "0.15em" }}>
+                  ✦ STYLES
+                </span>
+              </button>
+            )}
+            <AnimatePresence>
+              {rightPanelOpen && (
+                <motion.div
+                  initial={{ x: 500 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: 500 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="h-full border-l border-white/5 bg-[rgba(8,8,8,0.92)] backdrop-blur-md overflow-hidden p-4"
+                  style={{ width: 500, minWidth: 500 }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-[#F0EDE8] tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
+                      Styles
+                    </span>
+                    <button onClick={() => setRightPanelOpen(false)} className="text-white/30 hover:text-white/70 text-sm w-6 h-6 flex items-center justify-center">
+                      ✕
+                    </button>
+                  </div>
+                  <BuilderPanel onGenerate={onGenerate} canGenerate={canGenerate} reason={genReason} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Mobile Tab Bar */}
+        <MobileTabBar tabs={tabs} activeTab={mobileTab} onTabChange={setMobileTab} />
       </div>
 
       {showCam && <WebcamModal onClose={() => setShowCam(false)} />}
-      {showOrder && orderItem && <OrderMailModal open={showOrder} onClose={() => { setShowOrder(false); setOrderItem(null); }} />}
+      {showOrder && orderItem && (
+        <OrderMailModal
+          open={showOrder}
+          onClose={() => { setShowOrder(false); setOrderItem(null); }}
+        />
+      )}
+    </>
+  );
+}
+
+/* ── Empty States ── */
+
+function DesktopEmptyState({
+  hasPhotos,
+  hasStyles,
+  canGenerate,
+  photoCount,
+  styleCount,
+}: {
+  hasPhotos: boolean;
+  hasStyles: boolean;
+  canGenerate: boolean;
+  photoCount: number;
+  styleCount: number;
+}) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8">
+      {/* Visual workflow flow diagram */}
+      <div className="flex items-center gap-6 lg:gap-10">
+        {/* Step 1: Upload */}
+        <div className={`flex flex-col items-center gap-2 ${hasPhotos ? "opacity-100" : "opacity-40"}`}>
+          <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center text-xl transition-all ${
+            hasPhotos ? "border-[#C8B99A] bg-[rgba(200,185,154,0.08)]" : "border-white/10"
+          }`}>
+            📷
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider ${hasPhotos ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.3)]"}`}
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            {hasPhotos ? `${photoCount}/3` : "Upload photos"}
+          </span>
+        </div>
+
+        {/* Arrow */}
+        <motion.div className="text-white/10 text-2xl" animate={{ x: [0, 4, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+          →
+        </motion.div>
+
+        {/* Step 2: Styles */}
+        <div className={`flex flex-col items-center gap-2 ${hasStyles ? "opacity-100" : "opacity-40"}`}>
+          <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center text-xl transition-all ${
+            hasStyles ? "border-[#C8B99A] bg-[rgba(200,185,154,0.08)]" : "border-white/10"
+          }`}>
+            ✦
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider ${hasStyles ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.3)]"}`}
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            {hasStyles ? `${styleCount} selected` : "Pick styles"}
+          </span>
+        </div>
+
+        {/* Arrow */}
+        <motion.div className="text-white/10 text-2xl" animate={{ x: [0, 4, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}>
+          →
+        </motion.div>
+
+        {/* Step 3: Generate */}
+        <div className={`flex flex-col items-center gap-2 ${canGenerate ? "opacity-100" : "opacity-40"}`}>
+          <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center text-xl transition-all ${
+            canGenerate ? "border-[#C8B99A] bg-[rgba(200,185,154,0.08)] gas-glow" : "border-white/10"
+          }`}>
+            ⚡
+          </div>
+          <span className={`text-[9px] uppercase tracking-wider ${canGenerate ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.3)]"}`}
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            Generate
+          </span>
+        </div>
+      </div>
+
+      {/* Hint text */}
+      <p className="text-[10px] text-[rgba(240,237,232,0.2)] text-center max-w-xs leading-relaxed" style={{ fontFamily: "'DM Mono', monospace" }}>
+        Upload your best 2-3 photos from the left panel, then pick
+        your favourite portrait styles on the right to get started.
+      </p>
+    </div>
+  );
+}
+
+function MobileEmptyState({
+  onSwitchTab,
+  hasPhotos,
+  hasStyles,
+  photoCount,
+  styleCount,
+}: {
+  onSwitchTab: (tab: string) => void;
+  hasPhotos: boolean;
+  hasStyles: boolean;
+  photoCount: number;
+  styleCount: number;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-5">
+      {/* Step indicators */}
+      <div className="flex items-center gap-4">
+        <button onClick={() => onSwitchTab("photos")} className="flex flex-col items-center gap-1.5">
+          <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg transition-all ${
+            hasPhotos ? "border-[#C8B99A] bg-[rgba(200,185,154,0.08)]" : "border-white/10"
+          }`}>
+            📷
+          </div>
+          <span className={`text-[8px] uppercase tracking-wider ${hasPhotos ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.3)]"}`}
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            {hasPhotos ? `${photoCount}/3` : "Upload"}
+          </span>
+        </button>
+
+        <motion.span className="text-white/10 text-lg" animate={{ x: [0, 3, 0] }} transition={{ duration: 2, repeat: Infinity }}>
+          →
+        </motion.span>
+
+        <button onClick={() => onSwitchTab("styles")} className="flex flex-col items-center gap-1.5">
+          <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg transition-all ${
+            hasStyles ? "border-[#C8B99A] bg-[rgba(200,185,154,0.08)]" : "border-white/10"
+          }`}>
+            ✦
+          </div>
+          <span className={`text-[8px] uppercase tracking-wider ${hasStyles ? "text-[#C8B99A]" : "text-[rgba(240,237,232,0.3)]"}`}
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            Styles
+          </span>
+        </button>
+
+        <motion.span className="text-white/10 text-lg" animate={{ x: [0, 3, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}>
+          →
+        </motion.span>
+
+        <div className="flex flex-col items-center gap-1.5 opacity-30">
+          <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center text-lg">
+            ✨
+          </div>
+          <span className="text-[8px] text-[rgba(240,237,232,0.3)] uppercase tracking-wider" style={{ fontFamily: "'DM Mono', monospace" }}>
+            Results
+          </span>
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex gap-2 mt-2">
+        {!hasPhotos && (
+          <button onClick={() => onSwitchTab("photos")}
+            className="px-4 py-2 rounded-lg border border-[#C8B99A]/30 text-[10px] text-[#C8B99A] bg-[rgba(200,185,154,0.06)] transition-all"
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            1. 📷 Upload photos first
+          </button>
+        )}
+        {hasPhotos && !hasStyles && (
+          <button onClick={() => onSwitchTab("styles")}
+            className="px-4 py-2 rounded-lg border border-[#C8B99A]/30 text-[10px] text-[#C8B99A] bg-[rgba(200,185,154,0.06)] transition-all"
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            2. ✦ Pick your styles
+          </button>
+        )}
+        {hasPhotos && hasStyles && (
+          <button onClick={() => onSwitchTab("styles")}
+            className="px-4 py-2 rounded-lg border border-[#C8B99A]/40 text-[10px] text-[#C8B99A] bg-[rgba(200,185,154,0.1)] golden-glow transition-all"
+            style={{ fontFamily: "'DM Mono', monospace" }}>
+            3. ⚡ Tap Generate!
+          </button>
+        )}
+      </div>
+
+      <p className="text-[9px] text-[rgba(240,237,232,0.15)] text-center leading-relaxed" style={{ fontFamily: "'DM Mono', monospace" }}>
+        Tap the tabs below to switch between uploads, styles, and results.
+      </p>
     </div>
   );
 }
