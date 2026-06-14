@@ -6,6 +6,8 @@ import { applyWatermark } from "@/lib/watermark";
 import { getBriefs, randomizePrompt } from "@/lib/prompts";
 import { getSpecialty } from "@/lib/specialties";
 import Replicate from "replicate";
+import fs from "fs/promises";
+import path from "path";
 
 const LOG = "[CoverPhoto:API]";
 function apiLog(...args: any[]) { console.log(LOG, ...args); }
@@ -16,20 +18,20 @@ const replicate = new Replicate({
 });
 
 async function uploadRef(base64: string, email: string, i: number): Promise<string> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return base64;
-  const { put } = await import("@vercel/blob");
   const buf = Buffer.from(base64.split(",")[1] || base64, "base64");
-  const { url } = await put(`refs/${email}/${Date.now()}-${i}.jpg`, buf, { access: "public" });
-  return url;
+  const filename = `refs/${email}/${Date.now()}-${i}.jpg`;
+  const filepath = path.join(process.cwd(), "public", "uploads", filename);
+  await fs.mkdir(path.dirname(filepath), { recursive: true });
+  await fs.writeFile(filepath, buf);
+  return `/uploads/${filename}`;
 }
 
 async function uploadPortrait(buffer: Buffer, email: string, style: string): Promise<string> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return `data:image/jpeg;base64,${buffer.toString("base64")}`;
-  }
-  const { put } = await import("@vercel/blob");
-  const { url } = await put(`portraits/${email}/${Date.now()}-${style}.jpg`, buffer, { access: "public" });
-  return url;
+  const filename = `portraits/${email}/${Date.now()}-${style}.jpg`;
+  const filepath = path.join(process.cwd(), "public", "uploads", filename);
+  await fs.mkdir(path.dirname(filepath), { recursive: true });
+  await fs.writeFile(filepath, buffer);
+  return `/uploads/${filename}`;
 }
 
 export async function POST(request: Request) {
